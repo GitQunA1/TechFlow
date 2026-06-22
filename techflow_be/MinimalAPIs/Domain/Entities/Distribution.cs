@@ -10,6 +10,7 @@ public class Distribution
     public DistributionStatus Status { get; set; }
     public DateTime? DeadlineTime { get; set; }
     public DateTime? ConfirmedAt { get; set; }
+    public string? Note { get; set; }
 
     public FileVersion FileVersion { get; set; } = default!;
     public Department Department { get; set; } = default!;

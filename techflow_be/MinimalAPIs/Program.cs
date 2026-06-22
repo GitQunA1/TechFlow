@@ -12,6 +12,10 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+});
 
 // CORS — allow Next.js dev server to communicate with the API and SignalR hub
 builder.Services.AddCors(options =>
@@ -119,6 +123,7 @@ app.MapFolderEndpoints();
 app.MapFileEndpoints();
 app.MapNotificationEndpoints();
 app.MapWorkspaceEndpoints();
+app.MapAdminEndpoints();
 // SignalR hub — no auth required, clients connect via anonymous WebSocket
 app.MapHub<NotificationHub>("/hubs/notifications");
 

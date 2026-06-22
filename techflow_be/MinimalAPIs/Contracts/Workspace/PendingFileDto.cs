@@ -16,4 +16,5 @@ public sealed record PendingFileDto(
     string Status,
     DateTime? DeadlineTime,
     DateTime? ConfirmedAt,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    string? Note);

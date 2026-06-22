@@ -17,6 +17,45 @@ namespace MinimalAPIs.Endpoints;
 
 public static class FileEndpoints
 {
+    /// <summary>
+    /// Uploads a file to Cloudinary using the correct resource type so the returned URL
+    /// can be previewed directly in a browser (img / iframe).
+    /// - PNG / JPG / JPEG / GIF → ImageUploadParams  (delivery URL has extension, works in <img>)
+    /// - PDF                    → RawUploadParams + UseFilename  (URL keeps .pdf, works in <iframe>)
+    /// - DWG / anything else   → RawUploadParams (no browser preview possible)
+    /// </summary>
+    private static async Task<string> UploadToCloudinaryAsync(Cloudinary cloudinary, IFormFile file)
+    {
+        var ext = Path.GetExtension(file.FileName).TrimStart('.').ToLowerInvariant();
+        await using var stream = file.OpenReadStream();
+
+        if (ext is "png" or "jpg" or "jpeg" or "gif")
+        {
+            var p = new ImageUploadParams
+            {
+                File = new FileDescription(file.FileName, stream),
+                Folder = "techflow/uploads",
+                UseFilename = true,
+                UniqueFilename = true
+            };
+            var r = await cloudinary.UploadAsync(p);
+            if (r.Error != null) throw new InvalidOperationException(r.Error.Message);
+            return r.SecureUrl.ToString();
+        }
+        else  // pdf, dwg, or anything raw
+        {
+            var p = new RawUploadParams
+            {
+                File = new FileDescription(file.FileName, stream),
+                Folder = "techflow/uploads",
+                UseFilename = true,
+                UniqueFilename = true
+            };
+            var r = await cloudinary.UploadAsync(p);
+            if (r.Error != null) throw new InvalidOperationException(r.Error.Message);
+            return r.SecureUrl.ToString();
+        }
+    }
     public static IEndpointRouteBuilder MapFileEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/files")
@@ -39,7 +78,7 @@ public static class FileEndpoints
             [FromForm] int[]? departmentIds,
             [FromForm] string? rollbackFromVersionIdStr,
             [FromForm] string? deadlineTimeStr,
-            IFormFile pdfFile,
+            IFormFile file,
             ClaimsPrincipal user,
             AppDbContext dbContext,
             IWebHostEnvironment environment,
@@ -63,8 +102,9 @@ public static class FileEndpoints
             if (rollbackFromVersionId.HasValue && !fileId.HasValue)
                 return Results.BadRequest("FileId is required when rolling back.");
 
-            if (!Path.GetExtension(pdfFile.FileName).Equals(".pdf", StringComparison.OrdinalIgnoreCase))
-                return Results.BadRequest("Only PDF files are allowed.");
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (ext != ".pdf" && ext != ".png" && ext != ".dwg")
+                return Results.BadRequest("Only PDF, PNG, and DWG files are allowed.");
 
             var folderExists = await dbContext.Folders.AnyAsync(x => x.Id == folderId, cancellationToken);
             if (!folderExists)
@@ -98,8 +138,8 @@ public static class FileEndpoints
             }
             else
             {
-                var targetFileName = Path.GetFileNameWithoutExtension(pdfFile.FileName);
-                fileRecord = await dbContext.Files.FirstOrDefaultAsync(x => x.FolderId == folderId, cancellationToken);
+                var targetFileName = Path.GetFileNameWithoutExtension(file.FileName);
+                fileRecord = await dbContext.Files.FirstOrDefaultAsync(x => x.FolderId == folderId && x.FileName == targetFileName, cancellationToken);
 
                 if (fileRecord is null)
                 {
@@ -115,10 +155,8 @@ public static class FileEndpoints
                 }
                 else
                 {
-                    // Update the file name to the latest uploaded file name
-                    fileRecord.FileName = targetFileName;
-                    dbContext.Files.Update(fileRecord);
-                    await dbContext.SaveChangesAsync(cancellationToken);
+                    // Do not update the file name to the latest uploaded file name
+                    // so that previous versions retain the original document name.
                 }
             }
 
@@ -143,20 +181,14 @@ public static class FileEndpoints
             }
             else
             {
-                await using var fileStream = pdfFile.OpenReadStream();
-                var uploadParams = new RawUploadParams()
+                try
                 {
-                    File = new FileDescription(pdfFile.FileName, fileStream),
-                    Folder = "techflow/uploads"
-                };
-
-                var uploadResult = await cloudinary.UploadAsync(uploadParams);
-                if (uploadResult.Error != null)
-                {
-                    return Results.BadRequest($"Cloudinary Upload Error: {uploadResult.Error.Message}");
+                    fileUrl = await UploadToCloudinaryAsync(cloudinary, file);
                 }
-
-                fileUrl = uploadResult.SecureUrl.ToString();
+                catch (InvalidOperationException ex)
+                {
+                    return Results.BadRequest($"Cloudinary Upload Error: {ex.Message}");
+                }
             }
 
             // ── Insert FileVersion ─────────────────────────────────────────────
@@ -178,7 +210,7 @@ public static class FileEndpoints
                 FileVersionId = fileVersion.Id,
                 DepartmentId = deptId,
                 Status = DistributionStatus.Pending,
-                DeadlineTime = deadlineTime,
+                DeadlineTime = DateTime.UtcNow.AddMinutes(1), // FOR TESTING OVERDUE
                 ConfirmedAt = null
             }).ToList();
 
@@ -214,7 +246,7 @@ public static class FileEndpoints
         })
         .DisableAntiforgery()
         .WithSummary("Upload a new file or version")
-        .WithDescription("Accepts multipart/form-data with a physical PDF file and routing parameters. " +
+        .WithDescription("Accepts multipart/form-data with a physical file (PDF, PNG, DWG) and routing parameters. " +
                          "Pass departmentIds as repeated form fields (e.g. departmentIds=1&departmentIds=2). " +
                          "Omit fileId to create a new file; supply fileId + changeReason to add a new version.");
 
@@ -222,6 +254,137 @@ public static class FileEndpoints
         group.MapPost("/{id:int}/stop", StopAsync);
         group.MapPost("/{id:int}/resume", ResumeAsync);
         group.MapPost("/{fileId:int}/versions/{versionId:int}/rollback", RollbackAsync);
+
+        // ── POST /api/files/{id}/resume-with-file (multipart) ──────────────────
+        group.MapPost("/{id:int}/resume-with-file", async (
+            int id,
+            [FromForm] string departmentNotesJson,
+            IFormFile file,
+            ClaimsPrincipal user,
+            AppDbContext dbContext,
+            NotificationBroadcaster broadcaster,
+            Cloudinary cloudinary,
+            CancellationToken cancellationToken) =>
+        {
+            var currentUserId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(currentUserId, out var userId))
+                return Results.Unauthorized();
+
+            var currentUser = await dbContext.Users.FirstAsync(x => x.Id == userId, cancellationToken);
+            if (currentUser.Role != UserRole.Admin && currentUser.Role != UserRole.TechLeader)
+                return Results.Forbid();
+
+            var fileRecord = await dbContext.Files.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            if (fileRecord is null)
+                return Results.NotFound("File not found.");
+
+            if (!fileRecord.IsStopped)
+                return Results.BadRequest("File is not stopped.");
+
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (ext != ".pdf" && ext != ".png" && ext != ".dwg")
+                return Results.BadRequest("Only PDF, PNG, and DWG files are allowed.");
+
+            // Parse per-department notes from JSON string (needed because IFormFile cannot mix with complex object)
+            List<DepartmentNoteDto> departmentNotes;
+            try
+            {
+                departmentNotes = System.Text.Json.JsonSerializer.Deserialize<List<DepartmentNoteDto>>(
+                    departmentNotesJson,
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [];
+            }
+            catch
+            {
+                return Results.BadRequest("Invalid departmentNotesJson format.");
+            }
+
+            if (departmentNotes.Count == 0)
+                return Results.BadRequest("At least one department note is required.");
+
+            // Upload new file to Cloudinary
+            string fileUrl;
+            try
+            {
+                fileUrl = await UploadToCloudinaryAsync(cloudinary, file);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest($"Cloudinary Upload Error: {ex.Message}");
+            }
+
+            // Create new FileVersion
+            var nextVersionNumber = await dbContext.FileVersions
+                .Where(x => x.FileId == fileRecord.Id)
+                .Select(x => (int?)x.VersionNumber)
+                .MaxAsync(cancellationToken) ?? 0;
+
+            var fileVersion = new FileVersion
+            {
+                FileId = fileRecord.Id,
+                VersionNumber = nextVersionNumber + 1,
+                FileUrl = fileUrl,
+                ChangeReason = "Resumed with new revision",
+                UploadedById = userId,
+                CreatedAt = DateTime.UtcNow
+            };
+            dbContext.FileVersions.Add(fileVersion);
+
+            // Resume the file
+            fileRecord.IsStopped = false;
+            var resumedDepartmentIds = fileRecord.StoppedDepartmentIds.ToList();
+            fileRecord.StoppedDepartmentIds = [];
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            // All departments (affected and unaffected) get a Distribution to confirm + a Notification with per-dept note
+            var allDeptIds = departmentNotes.Select(d => d.DepartmentId).Distinct().ToList();
+
+            var distributions = departmentNotes.Select(dn => new Distribution
+            {
+                FileVersionId = fileVersion.Id,
+                DepartmentId = dn.DepartmentId,
+                Status = DistributionStatus.Pending,
+                DeadlineTime = null,
+                ConfirmedAt = null,
+                Note = dn.Note
+            }).ToList();
+            dbContext.Distributions.AddRange(distributions);
+
+            var notifications = departmentNotes.Select(dn => new Notification
+            {
+                DepartmentId = dn.DepartmentId,
+                Title = dn.IsAffected
+                    ? $"[RESUME + Revision mới - Có ảnh hưởng] {fileRecord.FileName} v{fileVersion.VersionNumber}"
+                    : $"[RESUME + Revision mới - Không ảnh hưởng] {fileRecord.FileName} v{fileVersion.VersionNumber}",
+                Message = dn.Note,
+                TargetFolderId = null,
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            }).ToList();
+            dbContext.Notifications.AddRange(notifications);
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            await broadcaster.BroadcastToDepartmentsAsync(
+                allDeptIds,
+                "Production_Resume",
+                new
+                {
+                    FileId = fileRecord.Id,
+                    fileRecord.FileName,
+                    fileVersion.VersionNumber,
+                    HasNewFile = true
+                });
+
+            return Results.Ok(new UploadFileResponse(
+                fileRecord.Id,
+                fileVersion.Id,
+                fileVersion.VersionNumber,
+                fileUrl));
+        })
+        .DisableAntiforgery()
+        .WithSummary("Resume a stopped file with a new file version")
+        .WithDescription("Resumes a stopped file by uploading a new revision. Creates a new FileVersion, sends per-department notes as Notifications, and requires all departments to re-confirm.");
 
         return app;
     }
@@ -288,9 +451,10 @@ public static class FileEndpoints
         return Results.Ok(new StopFileResponse("Stop triggered"));
     }
 
-    // ── POST /api/files/{id}/resume ───────────────────────────────────────────
+    // ── POST /api/files/{id}/resume (Case 1 – no new file, with per-dept notes) ──
     private static async Task<IResult> ResumeAsync(
         int id,
+        [FromBody] ResumeRequest request,
         ClaimsPrincipal user,
         AppDbContext dbContext,
         NotificationBroadcaster broadcaster,
@@ -312,14 +476,33 @@ public static class FileEndpoints
             return Results.BadRequest("File is not stopped.");
 
         file.IsStopped = false;
-        var resumedDepartmentIds = file.StoppedDepartmentIds;
+        var resumedDepartmentIds = file.StoppedDepartmentIds.ToList();
         file.StoppedDepartmentIds = [];
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        // Create per-department Notifications with individual notes
+        if (request.DepartmentNotes is { Count: > 0 })
+        {
+            var notifications = request.DepartmentNotes.Select(dn => new Notification
+            {
+                DepartmentId = dn.DepartmentId,
+                Title = dn.IsAffected
+                    ? $"[RESUME - Có ảnh hưởng] {file.FileName}"
+                    : $"[RESUME - Không ảnh hưởng] {file.FileName}",
+                Message = dn.Note,
+                TargetFolderId = null,
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            }).ToList();
+
+            dbContext.Notifications.AddRange(notifications);
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
 
         await broadcaster.BroadcastToDepartmentsAsync(
             resumedDepartmentIds,
             "Production_Resume",
-            new { FileId = file.Id, file.FileName });
+            new { FileId = file.Id, file.FileName, HasNewFile = false });
 
         return Results.Ok(new { Message = "Resume triggered" });
     }
@@ -389,7 +572,7 @@ public static class FileEndpoints
             FileVersionId = newVersion.Id,
             DepartmentId = deptId,
             Status = DistributionStatus.Pending,
-            DeadlineTime = DateTime.UtcNow.AddDays(7)
+            DeadlineTime = DateTime.UtcNow.AddMinutes(1) // FOR TESTING OVERDUE
         }).ToList();
 
         dbContext.Distributions.AddRange(distributions);

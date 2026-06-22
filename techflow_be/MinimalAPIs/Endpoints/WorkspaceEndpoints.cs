@@ -68,7 +68,8 @@ public static class WorkspaceEndpoints
                 x.Status.ToString(),
                 x.DeadlineTime,
                 x.ConfirmedAt,
-                x.FileVersion.CreatedAt))
+                x.FileVersion.CreatedAt,
+                x.Note))
             .ToList();
 
         return Results.Ok(latestDistributions);

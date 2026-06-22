@@ -297,33 +297,33 @@ export default function ProductionWorkspace() {
                   </div>
                 ) : (
                   notifications.map((n) => (
-                    <DropdownMenuItem
-                      key={n.id}
-                      className="flex flex-col items-start gap-1 p-3 cursor-pointer group relative"
-                      onSelect={(e) => {
-                        e.preventDefault();
-                        if (!n.isRead) handleReadNotification(n.id);
-                      }}
-                    >
-                      <div className="flex items-start justify-between w-full">
-                        <span className={cn("font-medium text-sm pr-6", !n.isRead && "text-primary")}>
-                          {n.title}
-                        </span>
-                        {!n.isRead && <span className="w-2 h-2 mt-1.5 shrink-0 rounded-full bg-primary" />}
-                      </div>
-                      <span className="text-xs text-muted-foreground pr-6 line-clamp-3">{n.message}</span>
-                      <span className="text-[10px] text-muted-foreground mt-1">
-                        {new Date(n.createdAt).toLocaleString()}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-2 top-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                        onClick={(e) => handleDeleteNotification(n.id, e)}
+                      <DropdownMenuItem
+                        key={n.id}
+                        className={cn("flex flex-col items-start gap-1 p-3 cursor-pointer group relative", !n.isRead ? "bg-primary/5" : "")}
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          if (!n.isRead) handleReadNotification(n.id);
+                        }}
                       >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </DropdownMenuItem>
+                        <div className="flex items-start justify-between w-full">
+                          <span className={cn("text-sm pr-6", !n.isRead ? "font-semibold text-foreground" : "font-medium text-muted-foreground")}>
+                            {n.title}
+                          </span>
+                          {!n.isRead && <span className="w-2 h-2 mt-1.5 shrink-0 rounded-full bg-primary" />}
+                        </div>
+                        <span className={cn("text-xs pr-6 line-clamp-3", !n.isRead ? "text-foreground/90" : "text-muted-foreground/80")}>{n.message}</span>
+                        <span className="text-[10px] text-muted-foreground mt-1">
+                          {new Date(n.createdAt).toLocaleString()}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-2 top-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => handleDeleteNotification(n.id, e)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </DropdownMenuItem>
                   ))
                 )}
               </div>

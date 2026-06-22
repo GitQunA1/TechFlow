@@ -87,7 +87,11 @@ public static class WorkspaceEndpoints
             return Results.Forbid();
         }
 
-        var distribution = await dbContext.Distributions.FirstOrDefaultAsync(x => x.Id == id && x.DepartmentId == departmentId.Value, cancellationToken);
+        var distribution = await dbContext.Distributions
+            .Include(x => x.FileVersion)
+                .ThenInclude(fv => fv.File)
+            .FirstOrDefaultAsync(x => x.Id == id && x.DepartmentId == departmentId.Value, cancellationToken);
+            
         if (distribution is null)
         {
             return Results.NotFound();
@@ -95,6 +99,21 @@ public static class WorkspaceEndpoints
 
         distribution.Status = DistributionStatus.Confirmed;
         distribution.ConfirmedAt = DateTime.UtcNow;
+
+        // Dismiss unread overdue warnings for this folder
+        var folderId = distribution.FileVersion.File.FolderId;
+        var unreadNotifications = await dbContext.Notifications
+            .Where(n => n.DepartmentId == departmentId.Value 
+                     && n.TargetFolderId == folderId 
+                     && n.Title == "Overdue Warning" 
+                     && !n.IsRead)
+            .ToListAsync(cancellationToken);
+
+        foreach (var n in unreadNotifications)
+        {
+            n.IsRead = true;
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return Results.Ok(new ConfirmDistributionResponse("Confirmed"));

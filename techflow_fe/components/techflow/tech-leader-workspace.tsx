@@ -718,10 +718,12 @@ function FileViewerPane({
             {files.length} {files.length === 1 ? "file" : "files"} in this folder
           </p>
         </div>
-        <Button onClick={() => setUploadCtx({ folderId: folder.id, folderName: folder.name, productName })}>
-          <Upload className="w-4 h-4 mr-2" />
-          Upload File
-        </Button>
+        {folder.parentId !== null && (
+          <Button onClick={() => setUploadCtx({ folderId: folder.id, folderName: folder.name, productName })}>
+            <Upload className="w-4 h-4 mr-2" />
+            Upload File
+          </Button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
@@ -731,9 +733,11 @@ function FileViewerPane({
           <div className="h-full flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed rounded-xl p-12">
             <FileText className="w-12 h-12 mb-4 opacity-20" />
             <p>This folder is empty.</p>
-            <Button variant="link" onClick={() => setUploadCtx({ folderId: folder.id, folderName: folder.name, productName })}>
-              Upload your first file
-            </Button>
+            {folder.parentId !== null && (
+              <Button variant="link" onClick={() => setUploadCtx({ folderId: folder.id, folderName: folder.name, productName })}>
+                Upload your first file
+              </Button>
+            )}
           </div>
         ) : (
           <div className="space-y-3">

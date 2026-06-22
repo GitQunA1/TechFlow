@@ -214,7 +214,8 @@ function SvgDonutChart({ data }: { data: { name: string; value: number }[] }) {
 
   let startAngle = -Math.PI / 2;
   const segments = data.map((d, i) => {
-    const angle = (d.value / total) * 2 * Math.PI;
+    let angle = (d.value / total) * 2 * Math.PI;
+    if (angle >= 2 * Math.PI) angle -= 0.0001; // Fix SVG arc bug when 100%
     const endAngle = startAngle + angle;
     const x1 = cx + r * Math.cos(startAngle);
     const y1 = cy + r * Math.sin(startAngle);

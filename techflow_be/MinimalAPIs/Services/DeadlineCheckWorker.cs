@@ -36,11 +36,37 @@ public sealed class DeadlineCheckWorker : BackgroundService
 
                 if (overdueDistributions.Count > 0)
                 {
-                    var newNotifications = new List<MinimalAPIs.Domain.Entities.Notification>();
+                    var folderIds = overdueDistributions.Select(d => d.FileVersion.File.FolderId).Distinct().ToList();
 
-                    foreach (var distribution in overdueDistributions)
+                    // Get the max CreatedAt for each folder to identify the "NEW" files
+                    var maxCreatedAtPerFolder = await dbContext.FileVersions
+                        .Where(fv => folderIds.Contains(fv.File.FolderId))
+                        .GroupBy(fv => fv.File.FolderId)
+                        .Select(g => new { FolderId = g.Key, MaxCreatedAt = g.Max(fv => fv.CreatedAt) })
+                        .ToDictionaryAsync(x => x.FolderId, x => x.MaxCreatedAt, stoppingToken);
+
+                    var genuinelyOverdue = new List<MinimalAPIs.Domain.Entities.Distribution>();
+
+                    foreach (var d in overdueDistributions)
                     {
-                        distribution.Status = DistributionStatus.Overdue;
+                        if (d.FileVersion.CreatedAt == maxCreatedAtPerFolder[d.FileVersion.File.FolderId])
+                        {
+                            genuinelyOverdue.Add(d);
+                        }
+                        else
+                        {
+                            // It's no longer the newest file, so clear its deadline to stop evaluating it
+                            d.DeadlineTime = null;
+                        }
+                    }
+
+                    if (genuinelyOverdue.Count > 0)
+                    {
+                        var newNotifications = new List<MinimalAPIs.Domain.Entities.Notification>();
+
+                        foreach (var distribution in genuinelyOverdue)
+                        {
+                            distribution.Status = DistributionStatus.Overdue;
 
                         // Create a notification for the Production department
                         newNotifications.Add(new MinimalAPIs.Domain.Entities.Notification
@@ -55,19 +81,25 @@ public sealed class DeadlineCheckWorker : BackgroundService
                     }
 
                     dbContext.Notifications.AddRange(newNotifications);
-                    await dbContext.SaveChangesAsync(stoppingToken);
 
                     // Notify Admins
                     await broadcaster.BroadcastToAdminsAsync("DeadlineOverdue", new
                     {
-                        Count = overdueDistributions.Count,
-                        DistributionIds = overdueDistributions.Select(x => x.Id).ToArray()
+                        Count = genuinelyOverdue.Count,
+                        DistributionIds = genuinelyOverdue.Select(x => x.Id).ToArray()
                     });
 
                     // Notify each department that they have overdue files
-                    var deptIds = overdueDistributions.Select(d => d.DepartmentId).Distinct().ToList();
+                    var deptIds = genuinelyOverdue.Select(d => d.DepartmentId).Distinct().ToList();
                     await broadcaster.BroadcastToDepartmentsAsync(deptIds, "DeadlineOverdue", new { Message = "You have overdue files!" });
                 }
+                
+                // Save any DeadlineTime = null changes for older files as well as Status = Overdue for new ones
+                if (overdueDistributions.Count > 0)
+                {
+                    await dbContext.SaveChangesAsync(stoppingToken);
+                }
+            }
             }
             catch (Exception exception)
             {

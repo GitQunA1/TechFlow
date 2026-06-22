@@ -628,6 +628,14 @@ function WorkshopCard({ file, isNew, onConfirm }: { file: PendingFileDto; isNew:
               <CheckCircle2 className="w-4 h-4 mr-2" />
               Confirmed
             </Button>
+          ) : !isNew ? (
+            <Button 
+              className="w-full h-11 bg-muted/50 text-muted-foreground border border-border cursor-not-allowed opacity-80" 
+              disabled
+            >
+              <FileText className="w-4 h-4 mr-2 opacity-50" />
+              Outdated - Cannot Confirm
+            </Button>
           ) : (
             <Button 
               className={cn("w-full font-semibold shadow-sm h-11 transition-all", isOverdue && hasViewed && "bg-amber-600 hover:bg-amber-700 text-white")}

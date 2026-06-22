@@ -210,7 +210,7 @@ public static class FileEndpoints
                 FileVersionId = fileVersion.Id,
                 DepartmentId = deptId,
                 Status = DistributionStatus.Pending,
-                DeadlineTime = DateTime.UtcNow.AddMinutes(1), // FOR TESTING OVERDUE
+                DeadlineTime = DateTime.UtcNow.AddHours(24),
                 ConfirmedAt = null
             }).ToList();
 
@@ -572,7 +572,7 @@ public static class FileEndpoints
             FileVersionId = newVersion.Id,
             DepartmentId = deptId,
             Status = DistributionStatus.Pending,
-            DeadlineTime = DateTime.UtcNow.AddMinutes(1) // FOR TESTING OVERDUE
+            DeadlineTime = DateTime.UtcNow.AddHours(24)
         }).ToList();
 
         dbContext.Distributions.AddRange(distributions);

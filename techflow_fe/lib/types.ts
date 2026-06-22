@@ -102,6 +102,7 @@ export interface PendingFileDto {
   deadlineTime: string | null;
   confirmedAt?: string | null;
   createdAt: string;
+  note: string | null;
 }
 
 // ── Notifications ─────────────────────────────────────────────────────────────
@@ -139,4 +140,12 @@ export interface NewUploadNotificationPayload {
 export interface EmergencyStopPayload {
   fileId: number;
   fileName: string;
+}
+
+// ── Resume ────────────────────────────────────────────────────────────────────
+
+export interface DepartmentNoteRequest {
+  departmentId: number;
+  note: string;
+  isAffected: boolean;
 }

@@ -68,10 +68,11 @@ export function UploadModal({
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0];
-      if (droppedFile.type === "application/pdf") {
+      const ext = droppedFile.name.toLowerCase().split('.').pop();
+      if (['pdf', 'png', 'dwg'].includes(ext || '')) {
         setFile(droppedFile);
       } else {
-        toast.error("Invalid file type. Please upload a PDF.");
+        toast.error("Invalid file type. Please upload a PDF, PNG, or DWG.");
       }
     }
   };
@@ -95,7 +96,7 @@ export function UploadModal({
     try {
       const formData = new FormData();
       formData.append("folderId", folderId.toString());
-      formData.append("pdfFile", file);
+      formData.append("file", file);
       
       selectedDepts.forEach((id) => {
         formData.append("departmentIds", id.toString());
@@ -142,7 +143,7 @@ export function UploadModal({
               type="file"
               ref={fileInputRef}
               onChange={handleFileSelect}
-              accept=".pdf"
+              accept=".pdf,.png,.dwg"
               className="hidden"
             />
 
@@ -151,10 +152,10 @@ export function UploadModal({
                 <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
                   <Upload className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-semibold mb-1">Drag & Drop PDF</h3>
+                <h3 className="text-lg font-semibold mb-1">Drag & Drop PDF, PNG, DWG</h3>
                 <p className="text-sm text-muted-foreground mb-4">or click to browse from your computer</p>
                 <Button variant="secondary" onClick={() => fileInputRef.current?.click()}>
-                  Select PDF File
+                  Select File
                 </Button>
               </div>
             ) : (

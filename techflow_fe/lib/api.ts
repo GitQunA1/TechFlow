@@ -16,6 +16,7 @@ import type {
   PendingFileDto,
   NotificationDto,
   FileHistoryDto,
+  DepartmentNoteRequest,
 } from "./types";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5165";
@@ -160,8 +161,24 @@ export async function stopFile(fileId: number, departmentIds: number[]): Promise
   });
 }
 
-export async function resumeFile(fileId: number): Promise<void> {
-  return apiFetch<void>(`/api/files/${fileId}/resume`, { method: "POST" });
+export async function resumeFile(
+  fileId: number,
+  request: { departmentNotes: DepartmentNoteRequest[] }
+): Promise<void> {
+  return apiFetch<void>(`/api/files/${fileId}/resume`, {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+}
+
+export async function resumeFileWithNewFile(
+  fileId: number,
+  formData: FormData
+): Promise<UploadFileResponse> {
+  return apiFetch<UploadFileResponse>(`/api/files/${fileId}/resume-with-file`, {
+    method: "POST",
+    body: formData,
+  });
 }
 
 export async function rollbackVersion(
@@ -199,4 +216,34 @@ export async function getNotifications(): Promise<NotificationDto[]> {
 
 export async function markNotificationRead(id: number): Promise<void> {
   return apiFetch<void>(`/api/notifications/${id}/read`, { method: "PUT" });
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  return apiFetch<void>(`/api/notifications/read-all`, { method: "PUT" });
+}
+
+export async function deleteNotification(id: number): Promise<void> {
+  return apiFetch<void>(`/api/notifications/${id}`, { method: "DELETE" });
+}
+
+export async function deleteAllNotifications(): Promise<void> {
+  return apiFetch<void>(`/api/notifications/all`, { method: "DELETE" });
+}
+
+export interface HistoryDto {
+  distributionId: number;
+  fileName: string;
+  versionNumber: number;
+  folderName: string;
+  categoryName: string;
+  uploaderName: string;
+  uploadedAt: string;
+  departmentName: string;
+  confirmedAt?: string;
+  status: string;
+  isStopped: boolean;
+}
+
+export async function getHistory(): Promise<HistoryDto[]> {
+  return apiFetch<HistoryDto[]>("/api/admin/history");
 }

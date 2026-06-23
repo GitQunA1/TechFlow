@@ -110,14 +110,19 @@ export default function ProductionWorkspace() {
       fetchData();
     });
 
+    const offConfirm = on("DistributionConfirmed", () => {
+      fetchData();
+    });
+
     return () => {
       offUpload();
       offStop();
       offResume();
+      offConfirm();
     };
   }, [on, user?.departmentId, fetchData]);
 
-  const unconfirmedCount = useMemo(() => {
+  const overdueCount = useMemo(() => {
     const folderGroups = new Map<number, PendingFileDto[]>();
     files.forEach(f => {
       const folId = f.folderId || 0;
@@ -130,7 +135,7 @@ export default function ProductionWorkspace() {
       count += folderFiles.filter(f => 
         new Date(f.createdAt).getTime() === maxCreatedAt && 
         maxCreatedAt > 0 && 
-        (f.status === "Pending" || f.status === "Overdue")
+        f.status === "Overdue"
       ).length;
     });
     return count;
@@ -297,13 +302,30 @@ export default function ProductionWorkspace() {
                   </div>
                 ) : (
                   notifications.map((n) => (
-                      <DropdownMenuItem
+                      <div
                         key={n.id}
-                        className={cn("flex flex-col items-start gap-1 p-3 cursor-pointer group relative", !n.isRead ? "bg-primary/5" : "")}
-                        onSelect={(e) => {
-                          e.preventDefault();
+                        role="button"
+                        tabIndex={0}
+                        className={cn("flex flex-col items-start gap-1 p-3 cursor-pointer group relative rounded-sm hover:bg-accent focus:outline-none focus:bg-accent", !n.isRead ? "bg-primary/5" : "")}
+                        onClick={() => {
                           if (!n.isRead) handleReadNotification(n.id);
+                          if (n.targetFolderId) {
+                            setFolderFilter("");
+                            setCategoryFilter("");
+                            setStatusFilter("all");
+                            setTimeout(() => {
+                              const el = document.getElementById(`folder-${n.targetFolderId}`);
+                              if (el) {
+                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                el.classList.add("ring-4", "ring-primary", "ring-offset-4", "transition-all", "duration-500");
+                                setTimeout(() => {
+                                  el.classList.remove("ring-4", "ring-primary", "ring-offset-4");
+                                }, 2500);
+                              }
+                            }, 100);
+                          }
                         }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') e.currentTarget.click(); }}
                       >
                         <div className="flex items-start justify-between w-full">
                           <span className={cn("text-sm pr-6", !n.isRead ? "font-semibold text-foreground" : "font-medium text-muted-foreground")}>
@@ -323,7 +345,7 @@ export default function ProductionWorkspace() {
                         >
                           <Trash2 className="w-3 h-3" />
                         </Button>
-                      </DropdownMenuItem>
+                      </div>
                   ))
                 )}
               </div>
@@ -343,14 +365,14 @@ export default function ProductionWorkspace() {
       )}
 
       {/* Warning Banner */}
-      {unconfirmedCount > 0 && (
+      {overdueCount > 0 && (
         <div className="mb-6 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl shadow-sm animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center">
             <AlertCircle className="w-5 h-5 text-amber-600 mr-3 shrink-0" />
             <div>
-              <h4 className="text-amber-800 font-semibold text-sm">Action Required: Unconfirmed Distributions</h4>
+              <h4 className="text-amber-800 font-semibold text-sm">Action Required: Overdue Distributions</h4>
               <p className="text-amber-700 text-xs mt-0.5">
-                You have {unconfirmedCount} distribution(s) that require your attention. Please acknowledge and confirm them as soon as possible.
+                You have {overdueCount} distribution(s) that are overdue. Please acknowledge and confirm them immediately.
               </p>
             </div>
           </div>
@@ -420,7 +442,7 @@ export default function ProductionWorkspace() {
               {/* Folders in this Category */}
               <div className="space-y-8">
                 {category.folders.map((folder) => (
-                  <div key={folder.folderId} className="bg-muted/30 rounded-xl p-6 border shadow-sm">
+                  <div key={folder.folderId} id={`folder-${folder.folderId}`} className="bg-muted/30 rounded-xl p-6 border shadow-sm transition-all duration-500">
                     <div className="flex items-center gap-2 mb-4">
                       <FolderOpen className="w-5 h-5 text-primary" />
                       <h3 className="text-xl font-semibold">{folder.name}</h3>

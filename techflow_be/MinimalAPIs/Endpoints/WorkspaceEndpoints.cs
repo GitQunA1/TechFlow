@@ -79,6 +79,7 @@ public static class WorkspaceEndpoints
         int id,
         ClaimsPrincipal user,
         AppDbContext dbContext,
+        MinimalAPIs.Services.NotificationBroadcaster broadcaster,
         CancellationToken cancellationToken)
     {
         var departmentId = GetDepartmentId(user);
@@ -115,6 +116,8 @@ public static class WorkspaceEndpoints
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        await broadcaster.BroadcastToAllAsync("DistributionConfirmed", new { distributionId = id });
 
         return Results.Ok(new ConfirmDistributionResponse("Confirmed"));
     }

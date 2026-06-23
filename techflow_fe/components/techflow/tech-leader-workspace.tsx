@@ -94,9 +94,16 @@ export default function TechLeaderWorkspace() {
   });
 
   useEffect(() => {
-    return on("NewUploadNotification", () => {
+    const offUpload = on("NewUploadNotification", () => {
       setRefreshTrigger(prev => prev + 1);
     });
+    const offConfirm = on("DistributionConfirmed", () => {
+      setRefreshTrigger(prev => prev + 1);
+    });
+    return () => {
+      offUpload();
+      offConfirm();
+    };
   }, [on]);
 
   useEffect(() => {

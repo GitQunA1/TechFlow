@@ -51,6 +51,8 @@ import type {
   DashboardStatsDto,
 } from "@/lib/types-admin";
 import type { DepartmentDto, CategoryDto } from "@/lib/types";
+import { useAuth } from "@/lib/auth-context";
+import { useSignalR } from "@/lib/use-signalr";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -248,22 +250,9 @@ function SvgDonutChart({ data }: { data: { name: string; value: number }[] }) {
 // Dashboard Tab
 // ─────────────────────────────────────────────────────────────────────────────
 
-function DashboardTab() {
+function DashboardTab({ refreshTrigger }: { refreshTrigger?: number }) {
   const [stats, setStats] = useState<DashboardStatsDto | null>(null);
   const [loading, setLoading] = useState(true);
-  const [reminding, setReminding] = useState(false);
-
-  const handleRemind = async () => {
-    setReminding(true);
-    try {
-      const res = await remindOverdue();
-      toast.success("Reminders Sent", { description: res.message });
-    } catch (err: any) {
-      toast.error("Failed to send reminders", { description: err.message });
-    } finally {
-      setReminding(false);
-    }
-  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -276,7 +265,7 @@ function DashboardTab() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, refreshTrigger]);
 
   if (loading) {
     return (
@@ -324,67 +313,6 @@ function DashboardTab() {
         </CardContent>
       </Card>
 
-      {/* Overdue Alerts Table */}
-      <Card className="border-destructive/30">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-base text-destructive">
-              <AlertTriangle className="size-5" /> Overdue Alerts (Top 10)
-            </CardTitle>
-            <CardDescription>Departments that missed their confirmation deadline.</CardDescription>
-          </div>
-          {stats.totalOverdue > 0 && (
-            <Button size="sm" variant="destructive" onClick={handleRemind} disabled={reminding}>
-              {reminding ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bell className="w-4 h-4 mr-2" />}
-              Remind All Overdue
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent className="p-0">
-          {stats.overdueAlerts.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted-foreground italic">
-              🎉 No overdue distributions!
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead>Department</TableHead>
-                  <TableHead>Drawing</TableHead>
-                  <TableHead className="hidden sm:table-cell">Category</TableHead>
-                  <TableHead className="hidden md:table-cell">Deadline</TableHead>
-                  <TableHead className="text-right">Overdue</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {stats.overdueAlerts.map((alert) => {
-                  const critical = alert.hoursOverdue >= 24;
-                  return (
-                    <TableRow key={alert.distributionId} className={cn(critical && "bg-destructive/5")}>
-                      <TableCell>
-                        <Badge className="bg-destructive text-white">{alert.departmentName}</Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {alert.fileName}{" "}
-                        <span className="font-mono text-xs text-muted-foreground">v{alert.versionNumber}</span>
-                      </TableCell>
-                      <TableCell className="hidden text-muted-foreground sm:table-cell">{alert.categoryName}</TableCell>
-                      <TableCell className="hidden text-muted-foreground md:table-cell">
-                        {new Date(alert.deadline).toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className={cn("inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold", critical ? "bg-destructive text-white" : "bg-destructive/10 text-destructive")}>
-                          <Clock className="size-3.5" /> {alert.hoursOverdue}h
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
 
       <div className="flex justify-end">
         <Button variant="outline" size="sm" onClick={load}>
@@ -399,7 +327,7 @@ function DashboardTab() {
 // Users Tab
 // ─────────────────────────────────────────────────────────────────────────────
 
-function UsersTab() {
+function UsersTab({ refreshTrigger }: { refreshTrigger?: number }) {
   const [users, setUsers] = useState<AdminUserDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [departments, setDepartments] = useState<DepartmentDto[]>([]);
@@ -433,7 +361,7 @@ function UsersTab() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, refreshTrigger]);
 
   const handleCreate = async () => {
     if (!createForm.username || !createForm.password) return;
@@ -636,7 +564,7 @@ function UsersTab() {
 // Categories Tab
 // ─────────────────────────────────────────────────────────────────────────────
 
-function CategoriesTab() {
+function CategoriesTab({ refreshTrigger }: { refreshTrigger?: number }) {
   const [categories, setCategories] = useState<AdminCategoryDto[]>([]);
   const [allUsers, setAllUsers] = useState<AdminUserDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -667,7 +595,7 @@ function CategoriesTab() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, refreshTrigger]);
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -838,7 +766,7 @@ function CategoriesTab() {
 // History Tab
 // ─────────────────────────────────────────────────────────────────────────────
 
-function HistoryTab() {
+function HistoryTab({ refreshTrigger }: { refreshTrigger?: number }) {
   const [history, setHistory] = useState<HistoryDto[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -849,7 +777,7 @@ function HistoryTab() {
 
   useEffect(() => {
     fetchHistory();
-  }, []);
+  }, [refreshTrigger]);
 
   const fetchHistory = async () => {
     try {
@@ -1009,6 +937,28 @@ function HistoryTab() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
+  const { user } = useAuth();
+  const { on } = useSignalR({
+    role: user?.role === "Admin" ? "Admin" : undefined,
+  });
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  useEffect(() => {
+    const handleRefresh = () => setRefreshTrigger(prev => prev + 1);
+    
+    const offConfirm = on("DistributionConfirmed", handleRefresh);
+    const offUpload = on("NewUploadNotification", handleRefresh);
+    const offStop = on("Emergency_Stop", handleRefresh);
+    const offResume = on("Production_Resume", handleRefresh);
+
+    return () => {
+      offConfirm();
+      offUpload();
+      offStop();
+      offResume();
+    };
+  }, [on]);
+
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8 space-y-6 animate-in fade-in duration-500">
       {/* Header */}
@@ -1042,16 +992,16 @@ export default function AdminDashboard() {
         </TabsList>
 
         <TabsContent value="dashboard" className="mt-6">
-          <DashboardTab />
+          <DashboardTab refreshTrigger={refreshTrigger} />
         </TabsContent>
         <TabsContent value="history" className="mt-6">
-          <HistoryTab />
+          <HistoryTab refreshTrigger={refreshTrigger} />
         </TabsContent>
         <TabsContent value="users" className="mt-6">
-          <UsersTab />
+          <UsersTab refreshTrigger={refreshTrigger} />
         </TabsContent>
         <TabsContent value="categories" className="mt-6">
-          <CategoriesTab />
+          <CategoriesTab refreshTrigger={refreshTrigger} />
         </TabsContent>
       </Tabs>
     </div>

@@ -25,4 +25,9 @@ public sealed class NotificationBroadcaster
     {
         return _hubContext.Clients.Group("Admins").SendAsync(eventName, payload);
     }
+
+    public Task BroadcastToAllAsync(string eventName, object payload)
+    {
+        return _hubContext.Clients.All.SendAsync(eventName, payload);
+    }
 }

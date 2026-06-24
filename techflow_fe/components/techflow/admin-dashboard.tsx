@@ -909,7 +909,8 @@ function HistoryTab({ refreshTrigger }: { refreshTrigger?: number }) {
                       <span className={cn(
                         "text-xs font-semibold px-2 py-0.5 rounded-md",
                         h.status === "Confirmed" ? "bg-emerald-100 text-emerald-800" :
-                        h.status === "Overdue" ? "bg-amber-100 text-amber-800" :
+                        h.status === "Overdue" ? "bg-red-100 text-red-800" :
+                        h.status === "Pending" ? "bg-amber-100 text-amber-800" :
                         "bg-slate-100 text-slate-800"
                       )}>
                         {h.status}

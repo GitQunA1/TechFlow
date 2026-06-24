@@ -238,6 +238,15 @@ public static class FileEndpoints
                 DepartmentIds = departmentIdList
             });
 
+            // Also notify Admins so their dashboard auto-refreshes
+            await broadcaster.BroadcastToAdminsAsync("NewUploadNotification", new
+            {
+                FileId = fileRecord.Id,
+                FileVersionId = fileVersion.Id,
+                fileRecord.FileName,
+                fileVersion.VersionNumber
+            });
+
             return Results.Ok(new UploadFileResponse(
                 fileRecord.Id,
                 fileVersion.Id,
@@ -376,6 +385,15 @@ public static class FileEndpoints
                     HasNewFile = true
                 });
 
+            // Also notify Admins so their dashboard auto-refreshes
+            await broadcaster.BroadcastToAdminsAsync("Production_Resume", new
+            {
+                FileId = fileRecord.Id,
+                fileRecord.FileName,
+                fileVersion.VersionNumber,
+                HasNewFile = true
+            });
+
             return Results.Ok(new UploadFileResponse(
                 fileRecord.Id,
                 fileVersion.Id,
@@ -448,6 +466,9 @@ public static class FileEndpoints
             "Emergency_Stop",
             new { FileId = file.Id, file.FileName });
 
+        // Also notify Admins so their dashboard auto-refreshes
+        await broadcaster.BroadcastToAdminsAsync("Emergency_Stop", new { FileId = file.Id, file.FileName });
+
         return Results.Ok(new StopFileResponse("Stop triggered"));
     }
 
@@ -503,6 +524,9 @@ public static class FileEndpoints
             resumedDepartmentIds,
             "Production_Resume",
             new { FileId = file.Id, file.FileName, HasNewFile = false });
+
+        // Also notify Admins so their dashboard auto-refreshes
+        await broadcaster.BroadcastToAdminsAsync("Production_Resume", new { FileId = file.Id, file.FileName, HasNewFile = false });
 
         return Results.Ok(new { Message = "Resume triggered" });
     }

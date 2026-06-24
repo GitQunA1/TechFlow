@@ -84,9 +84,6 @@ export default function Page() {
               </Button>
             </CardFooter>
           </form>
-          <div className="px-6 pb-6 text-xs text-muted-foreground">
-            <p>Hint: tan_jc (Tech Leader), wood1_user (Production)</p>
-          </div>
         </Card>
       </div>
     );

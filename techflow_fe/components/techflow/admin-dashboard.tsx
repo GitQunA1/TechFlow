@@ -327,7 +327,7 @@ function DashboardTab({ refreshTrigger }: { refreshTrigger?: number }) {
 // Users Tab
 // ─────────────────────────────────────────────────────────────────────────────
 
-function UsersTab({ refreshTrigger }: { refreshTrigger?: number }) {
+function UsersTab({ refreshTrigger, onDataChanged }: { refreshTrigger?: number, onDataChanged?: () => void }) {
   const [users, setUsers] = useState<AdminUserDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [departments, setDepartments] = useState<DepartmentDto[]>([]);
@@ -377,6 +377,7 @@ function UsersTab({ refreshTrigger }: { refreshTrigger?: number }) {
       toast.success("User created");
       setCreateOpen(false);
       setCreateForm({ username: "", password: "", role: "Production", categoryId: "", departmentId: "" });
+      onDataChanged?.();
       await load();
     } catch (err: any) {
       toast.error("Failed to create user", { description: err.message });
@@ -409,6 +410,7 @@ function UsersTab({ refreshTrigger }: { refreshTrigger?: number }) {
       });
       toast.success("User updated");
       setEditUser(null);
+      onDataChanged?.();
       await load();
     } catch (err: any) {
       toast.error("Failed to update user", { description: err.message });
@@ -424,6 +426,7 @@ function UsersTab({ refreshTrigger }: { refreshTrigger?: number }) {
       await deleteAdminUser(deleteId);
       toast.success("User deleted");
       setDeleteId(null);
+      onDataChanged?.();
       await load();
     } catch (err: any) {
       toast.error("Failed to delete user", { description: err.message });
@@ -436,11 +439,11 @@ function UsersTab({ refreshTrigger }: { refreshTrigger?: number }) {
     <div className="space-y-3">
       <div>
         <FieldLabel>Username</FieldLabel>
-        <FieldInput value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} placeholder="e.g. tan_jc" />
+        <FieldInput autoComplete="off" data-lpignore="true" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} placeholder="e.g. tan_jc" />
       </div>
       <div>
         <FieldLabel>{isCreate ? "Password" : "New Password (leave blank to keep)"}</FieldLabel>
-        <FieldInput type="password" value={form.password ?? form.newPassword} onChange={e => setForm({ ...form, [isCreate ? "password" : "newPassword"]: e.target.value })} placeholder={isCreate ? "Password" : "Leave blank to keep current"} />
+        <FieldInput type="password" autoComplete="new-password" data-lpignore="true" value={form.password ?? form.newPassword} onChange={e => setForm({ ...form, [isCreate ? "password" : "newPassword"]: e.target.value })} placeholder={isCreate ? "Password" : "Leave blank to keep current"} />
       </div>
       <div>
         <FieldLabel>Role</FieldLabel>
@@ -476,7 +479,10 @@ function UsersTab({ refreshTrigger }: { refreshTrigger?: number }) {
           <h2 className="text-lg font-semibold">User Accounts</h2>
           <p className="text-sm text-muted-foreground">{users.length} user{users.length !== 1 ? "s" : ""} registered</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
+        <Button onClick={() => {
+          setCreateForm({ username: "", password: "", role: "Production", categoryId: "", departmentId: "" });
+          setCreateOpen(true);
+        }}>
           <Plus className="w-4 h-4 mr-2" /> Create User
         </Button>
       </div>
@@ -564,7 +570,7 @@ function UsersTab({ refreshTrigger }: { refreshTrigger?: number }) {
 // Categories Tab
 // ─────────────────────────────────────────────────────────────────────────────
 
-function CategoriesTab({ refreshTrigger }: { refreshTrigger?: number }) {
+function CategoriesTab({ refreshTrigger, onDataChanged }: { refreshTrigger?: number, onDataChanged?: () => void }) {
   const [categories, setCategories] = useState<AdminCategoryDto[]>([]);
   const [allUsers, setAllUsers] = useState<AdminUserDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -605,6 +611,7 @@ function CategoriesTab({ refreshTrigger }: { refreshTrigger?: number }) {
       toast.success("Category created");
       setCreateOpen(false);
       setNewName("");
+      onDataChanged?.();
       await load();
     } catch (err: any) {
       toast.error("Failed to create category", { description: err.message });
@@ -628,6 +635,7 @@ function CategoriesTab({ refreshTrigger }: { refreshTrigger?: number }) {
       });
       toast.success("Category updated");
       setEditCat(null);
+      onDataChanged?.();
       await load();
     } catch (err: any) {
       toast.error("Failed to update category", { description: err.message });
@@ -643,6 +651,7 @@ function CategoriesTab({ refreshTrigger }: { refreshTrigger?: number }) {
       await deleteAdminCategory(deleteId);
       toast.success("Category deleted");
       setDeleteId(null);
+      onDataChanged?.();
       await load();
     } catch (err: any) {
       toast.error("Failed to delete category", { description: err.message });
@@ -942,6 +951,7 @@ export default function AdminDashboard() {
     role: user?.role === "Admin" ? "Admin" : undefined,
   });
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const handleDataChanged = useCallback(() => setRefreshTrigger(prev => prev + 1), []);
 
   useEffect(() => {
     const handleRefresh = () => setRefreshTrigger(prev => prev + 1);
@@ -998,10 +1008,10 @@ export default function AdminDashboard() {
           <HistoryTab refreshTrigger={refreshTrigger} />
         </TabsContent>
         <TabsContent value="users" className="mt-6">
-          <UsersTab refreshTrigger={refreshTrigger} />
+          <UsersTab refreshTrigger={refreshTrigger} onDataChanged={handleDataChanged} />
         </TabsContent>
         <TabsContent value="categories" className="mt-6">
-          <CategoriesTab refreshTrigger={refreshTrigger} />
+          <CategoriesTab refreshTrigger={refreshTrigger} onDataChanged={handleDataChanged} />
         </TabsContent>
       </Tabs>
     </div>

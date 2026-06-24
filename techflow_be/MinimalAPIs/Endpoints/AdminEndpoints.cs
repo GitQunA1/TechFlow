@@ -87,6 +87,17 @@ public static class AdminEndpoints
         db.Users.Add(user);
         await db.SaveChangesAsync(ct);
 
+        // If TechLeader is assigned to a category, also set them as the category leader
+        if (user.Role == UserRole.TechLeader && user.CategoryId.HasValue)
+        {
+            var cat = await db.Categories.FindAsync([user.CategoryId.Value], ct);
+            if (cat is not null)
+            {
+                cat.LeaderId = user.Id;
+                await db.SaveChangesAsync(ct);
+            }
+        }
+
         return Results.Ok(new AdminUserDto(
             user.Id,
             user.Username,
@@ -106,6 +117,8 @@ public static class AdminEndpoints
     {
         var user = await db.Users.FindAsync([id], ct);
         if (user is null) return Results.NotFound("User not found.");
+
+        var oldCategoryId = user.CategoryId;
 
         if (!string.IsNullOrWhiteSpace(request.Username))
         {
@@ -128,6 +141,46 @@ public static class AdminEndpoints
             user.DepartmentId = request.DepartmentId.Value == -1 ? null : request.DepartmentId.Value;
 
         await db.SaveChangesAsync(ct);
+
+        // Sync Category.LeaderId when TechLeader's category changes
+        var newCategoryId = user.CategoryId;
+        if (user.Role == UserRole.TechLeader)
+        {
+            // Clear old category's leader if it was this user
+            if (oldCategoryId.HasValue && oldCategoryId != newCategoryId)
+            {
+                var oldCat = await db.Categories.FindAsync([oldCategoryId.Value], ct);
+                if (oldCat is not null && oldCat.LeaderId == id)
+                {
+                    oldCat.LeaderId = null;
+                    await db.SaveChangesAsync(ct);
+                }
+            }
+            // Set new category's leader
+            if (newCategoryId.HasValue)
+            {
+                var newCat = await db.Categories.FindAsync([newCategoryId.Value], ct);
+                if (newCat is not null)
+                {
+                    newCat.LeaderId = id;
+                    await db.SaveChangesAsync(ct);
+                }
+            }
+        }
+        else
+        {
+            // Role changed away from TechLeader — clear their leadership from old category
+            if (oldCategoryId.HasValue)
+            {
+                var oldCat = await db.Categories.FindAsync([oldCategoryId.Value], ct);
+                if (oldCat is not null && oldCat.LeaderId == id)
+                {
+                    oldCat.LeaderId = null;
+                    await db.SaveChangesAsync(ct);
+                }
+            }
+        }
+
         return Results.Ok(new { message = "Updated." });
     }
 

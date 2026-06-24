@@ -325,18 +325,40 @@ public static class AdminEndpoints
 
     private static async Task<IResult> GetDashboardStatsAsync(AppDbContext db, CancellationToken ct)
     {
-        // Total active (non-stopped) files
-        var totalActiveFiles = await db.Files.CountAsync(f => !f.IsStopped, ct);
+        // ── Determine "NEW" file versions ────────────────────────────────────
+        // Mirrors frontend logic: within each folder, the FileVersion with the
+        // highest CreatedAt is "NEW" (shown with green badge in production view).
 
-        // Find the latest version ID for each file (these are the "NEW" tagged versions shown in production)
-        var latestVersionIds = await db.FileVersions
-            .GroupBy(fv => fv.FileId)
-            .Select(g => g.OrderByDescending(fv => fv.VersionNumber).First().Id)
+        // Load all FileVersions with their folder info (lightweight projection)
+        var allVersions = await db.FileVersions
+            .Include(fv => fv.File)
+            .Select(fv => new { fv.Id, fv.FileId, FolderId = fv.File.FolderId, fv.CreatedAt })
             .ToListAsync(ct);
 
-        // Aggregate distributions — only for the latest file version of each file
+        // Max CreatedAt per folder
+        var maxCreatedAtPerFolder = allVersions
+            .GroupBy(fv => fv.FolderId)
+            .ToDictionary(g => g.Key, g => g.Max(fv => fv.CreatedAt));
+
+        // FileVersion IDs that are "NEW" (newest in their folder)
+        var newVersionIds = allVersions
+            .Where(fv => fv.CreatedAt == maxCreatedAtPerFolder[fv.FolderId])
+            .Select(fv => fv.Id)
+            .ToHashSet();
+
+        // ── Active Files ───────────────────────────────────────────────────────
+        // Non-stopped files that are "NEW" (their version is newest in the folder)
+        var newFileIds = allVersions
+            .Where(fv => newVersionIds.Contains(fv.Id))
+            .Select(fv => fv.FileId)
+            .ToHashSet();
+
+        var totalActiveFiles = await db.Files
+            .CountAsync(f => !f.IsStopped && newFileIds.Contains(f.Id), ct);
+
+        // ── Distributions (only for NEW versions) ─────────────────────────────
         var distributions = await db.Distributions
-            .Where(d => latestVersionIds.Contains(d.FileVersionId))
+            .Where(d => newVersionIds.Contains(d.FileVersionId))
             .Include(d => d.Department)
             .Include(d => d.FileVersion)
                 .ThenInclude(fv => fv.File)

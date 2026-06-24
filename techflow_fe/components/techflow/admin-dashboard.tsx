@@ -962,6 +962,7 @@ export default function AdminDashboard() {
     const offStop = on("Emergency_Stop", handleRefresh);
     const offResume = on("Production_Resume", handleRefresh);
     const offOverdue = on("OverdueNotification", handleRefresh);
+    const offDelete = on("DataDeleted", handleRefresh);
 
     return () => {
       offConfirm();
@@ -969,6 +970,7 @@ export default function AdminDashboard() {
       offStop();
       offResume();
       offOverdue();
+      offDelete();
     };
   }, [on]);
 

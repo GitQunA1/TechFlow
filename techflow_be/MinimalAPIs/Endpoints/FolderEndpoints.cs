@@ -156,6 +156,7 @@ public static class FolderEndpoints
     private static async Task<IResult> DeleteFolderAsync(
         int id,
         AppDbContext dbContext,
+        MinimalAPIs.Services.NotificationBroadcaster broadcaster,
         CancellationToken cancellationToken)
     {
         // Recursively find all folders to delete
@@ -230,6 +231,9 @@ public static class FolderEndpoints
             }
             await dbContext.SaveChangesAsync(cancellationToken);
         }
+
+        // Notify Admins so dashboard auto-refreshes
+        await broadcaster.BroadcastToAdminsAsync("DataDeleted", new { FolderId = id });
 
         return Results.NoContent();
     }

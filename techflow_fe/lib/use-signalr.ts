@@ -47,7 +47,7 @@ export function useSignalR(options: SignalROptions): UseSignalRReturn {
         skipNegotiation: true,
       })
       .withAutomaticReconnect()
-      .configureLogging(signalR.LogLevel.Warning)
+      .configureLogging(signalR.LogLevel.None)
       .build();
 
     connectionRef.current = connection;

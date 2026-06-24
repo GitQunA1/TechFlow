@@ -328,8 +328,15 @@ public static class AdminEndpoints
         // Total active (non-stopped) files
         var totalActiveFiles = await db.Files.CountAsync(f => !f.IsStopped, ct);
 
-        // Aggregate distributions
+        // Find the latest version ID for each file (these are the "NEW" tagged versions shown in production)
+        var latestVersionIds = await db.FileVersions
+            .GroupBy(fv => fv.FileId)
+            .Select(g => g.OrderByDescending(fv => fv.VersionNumber).First().Id)
+            .ToListAsync(ct);
+
+        // Aggregate distributions — only for the latest file version of each file
         var distributions = await db.Distributions
+            .Where(d => latestVersionIds.Contains(d.FileVersionId))
             .Include(d => d.Department)
             .Include(d => d.FileVersion)
                 .ThenInclude(fv => fv.File)

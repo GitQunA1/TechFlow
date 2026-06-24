@@ -961,12 +961,14 @@ export default function AdminDashboard() {
     const offUpload = on("NewUploadNotification", handleRefresh);
     const offStop = on("Emergency_Stop", handleRefresh);
     const offResume = on("Production_Resume", handleRefresh);
+    const offOverdue = on("OverdueNotification", handleRefresh);
 
     return () => {
       offConfirm();
       offUpload();
       offStop();
       offResume();
+      offOverdue();
     };
   }, [on]);
 

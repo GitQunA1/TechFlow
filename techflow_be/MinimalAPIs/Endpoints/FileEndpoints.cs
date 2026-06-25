@@ -130,6 +130,8 @@ public static class FileEndpoints
 
             // ── Resolve or create file record ─────────────────────────────────
             FileEntity? fileRecord;
+            var targetFileName = Path.GetFileNameWithoutExtension(file.FileName);
+
             if (fileId.HasValue)
             {
                 fileRecord = await dbContext.Files.FirstOrDefaultAsync(x => x.Id == fileId.Value, cancellationToken);
@@ -138,8 +140,7 @@ public static class FileEndpoints
             }
             else
             {
-                var targetFileName = Path.GetFileNameWithoutExtension(file.FileName);
-                fileRecord = await dbContext.Files.FirstOrDefaultAsync(x => x.FolderId == folderId && x.FileName == targetFileName, cancellationToken);
+                fileRecord = await dbContext.Files.FirstOrDefaultAsync(x => x.FolderId == folderId, cancellationToken);
 
                 if (fileRecord is null)
                 {
@@ -153,11 +154,7 @@ public static class FileEndpoints
                     dbContext.Files.Add(fileRecord);
                     await dbContext.SaveChangesAsync(cancellationToken);
                 }
-                else
-                {
-                    // Do not update the file name to the latest uploaded file name
-                    // so that previous versions retain the original document name.
-                }
+                // Do NOT update File.FileName – each version stores its own FileName
             }
 
             // ── Resolve next version number ───────────────────────────────────
@@ -195,6 +192,7 @@ public static class FileEndpoints
             var fileVersion = new FileVersion
             {
                 FileId = fileRecord.Id,
+                FileName = targetFileName,
                 VersionNumber = nextVersionNumber + 1,
                 FileUrl = fileUrl,
                 ChangeReason = changeReason,
@@ -321,6 +319,8 @@ public static class FileEndpoints
                 return Results.BadRequest($"Cloudinary Upload Error: {ex.Message}");
             }
 
+            var resumeFileName = Path.GetFileNameWithoutExtension(file.FileName);
+
             // Create new FileVersion
             var nextVersionNumber = await dbContext.FileVersions
                 .Where(x => x.FileId == fileRecord.Id)
@@ -330,6 +330,7 @@ public static class FileEndpoints
             var fileVersion = new FileVersion
             {
                 FileId = fileRecord.Id,
+                FileName = resumeFileName,
                 VersionNumber = nextVersionNumber + 1,
                 FileUrl = fileUrl,
                 ChangeReason = "Resumed with new revision",
@@ -363,10 +364,10 @@ public static class FileEndpoints
             {
                 DepartmentId = dn.DepartmentId,
                 Title = dn.IsAffected
-                    ? $"[RESUME + Revision mới - Có ảnh hưởng] {fileRecord.FileName} v{fileVersion.VersionNumber}"
-                    : $"[RESUME + Revision mới - Không ảnh hưởng] {fileRecord.FileName} v{fileVersion.VersionNumber}",
+                    ? $"[RESUME + Revision mới - Có ảnh hưởng] {fileVersion.FileName} v{fileVersion.VersionNumber}"
+                    : $"[RESUME + Revision mới - Không ảnh hưởng] {fileVersion.FileName} v{fileVersion.VersionNumber}",
                 Message = dn.Note,
-                TargetFolderId = null,
+                TargetFolderId = fileRecord.FolderId,
                 IsRead = false,
                 CreatedAt = DateTime.UtcNow
             }).ToList();
@@ -380,7 +381,7 @@ public static class FileEndpoints
                 new
                 {
                     FileId = fileRecord.Id,
-                    fileRecord.FileName,
+                    FileName = fileVersion.FileName,
                     fileVersion.VersionNumber,
                     HasNewFile = true
                 });
@@ -389,7 +390,7 @@ public static class FileEndpoints
             await broadcaster.BroadcastToAdminsAsync("Production_Resume", new
             {
                 FileId = fileRecord.Id,
-                fileRecord.FileName,
+                FileName = fileVersion.FileName,
                 fileVersion.VersionNumber,
                 HasNewFile = true
             });
@@ -501,21 +502,43 @@ public static class FileEndpoints
         file.StoppedDepartmentIds = [];
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        // Create per-department Notifications with individual notes
-        if (request.DepartmentNotes is { Count: > 0 })
-        {
-            var notifications = request.DepartmentNotes.Select(dn => new Notification
-            {
-                DepartmentId = dn.DepartmentId,
-                Title = dn.IsAffected
-                    ? $"[RESUME - Có ảnh hưởng] {file.FileName}"
-                    : $"[RESUME - Không ảnh hưởng] {file.FileName}",
-                Message = dn.Note,
-                TargetFolderId = null,
-                IsRead = false,
-                CreatedAt = DateTime.UtcNow
-            }).ToList();
+        // Ensure every resumed department gets a Notification
+        var notifications = new List<Notification>();
+        var notesList = request.DepartmentNotes ?? new List<DepartmentNoteDto>();
 
+        foreach (var deptId in resumedDepartmentIds)
+        {
+            var note = notesList.FirstOrDefault(n => n.DepartmentId == deptId);
+            if (note != null && !string.IsNullOrWhiteSpace(note.Note))
+            {
+                notifications.Add(new Notification
+                {
+                    DepartmentId = deptId,
+                    Title = note.IsAffected
+                        ? $"[RESUME - Affected] {file.FileName}"
+                        : $"[RESUME - Unaffected] {file.FileName}",
+                    Message = note.Note,
+                    TargetFolderId = file.FolderId,
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            else
+            {
+                notifications.Add(new Notification
+                {
+                    DepartmentId = deptId,
+                    Title = $"[RESUME - No Changes] {file.FileName}",
+                    Message = "Production has resumed. No file changes or specific notes were provided.",
+                    TargetFolderId = file.FolderId,
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+
+        if (notifications.Any())
+        {
             dbContext.Notifications.AddRange(notifications);
             await dbContext.SaveChangesAsync(cancellationToken);
         }

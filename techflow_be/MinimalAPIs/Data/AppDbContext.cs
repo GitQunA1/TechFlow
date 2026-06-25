@@ -102,6 +102,7 @@ public class AppDbContext : DbContext
         {
             entity.ToTable("FileVersions");
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.FileName).IsRequired().HasMaxLength(500).HasDefaultValue(string.Empty);
             entity.Property(x => x.FileUrl).IsRequired().HasMaxLength(1000);
             entity.Property(x => x.ChangeReason).HasMaxLength(1000);
             entity.Property(x => x.CreatedAt)

@@ -55,7 +55,7 @@ public static class WorkspaceEndpoints
             .Select(x => new PendingFileDto(
                 x.Id,
                 x.FileVersion.FileId,
-                x.FileVersion.File.FileName,
+                x.FileVersion.FileName,
                 x.FileVersion.File.FolderId,
                 x.FileVersion.File.Folder.Name,
                 x.FileVersion.File.Folder.CategoryId,

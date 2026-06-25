@@ -92,7 +92,7 @@ public static class FolderEndpoints
                 return new FolderFileDto(
                     file.Id,
                     version.Id,
-                    file.FileName,
+                    version.FileName,
                     file.IsStopped,
                     version.VersionNumber,
                     version.FileUrl,

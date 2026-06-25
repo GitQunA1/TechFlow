@@ -99,10 +99,17 @@ export default function ProductionWorkspace() {
     });
 
     const offResume = on("Production_Resume", (payload: any) => {
-      toast.success("PRODUCTION RESUMED", {
-        description: `${payload.fileName} is back to normal`,
-        duration: 5000,
-      });
+      if (payload.hasNewFile) {
+        toast.info("NEW FILE & PRODUCTION RESUMED", {
+          description: `${payload.fileName || "File"} v${payload.versionNumber || "new"} has been released.`,
+          duration: 8000,
+        });
+      } else {
+        toast.success("PRODUCTION RESUMED", {
+          description: `${payload.fileName || "File"} is back to normal`,
+          duration: 5000,
+        });
+      }
       // Optimistically update the file list
       setFiles((prev) =>
         prev.map((f) => (f.fileId === payload.fileId ? { ...f, isStopped: false } : f))
@@ -660,10 +667,14 @@ function WorkshopCard({ file, isNew, onConfirm }: { file: PendingFileDto; isNew:
             </Button>
           ) : (
             <Button 
-              className={cn("w-full font-semibold shadow-sm h-11 transition-all", isOverdue && hasViewed && "bg-amber-600 hover:bg-amber-700 text-white")}
+              className={cn(
+                "w-full font-semibold shadow-sm h-11 transition-all", 
+                isOverdue && hasViewed && "bg-amber-600 hover:bg-amber-700 text-white",
+                !hasViewed && "bg-[#129c92] text-white opacity-95 disabled:opacity-95"
+              )}
               onClick={handleConfirmClick} 
               disabled={confirming || !hasViewed}
-              variant={hasViewed ? "default" : "secondary"}
+              variant={hasViewed ? "default" : "default"}
             >
               {confirming ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />

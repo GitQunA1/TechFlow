@@ -460,7 +460,7 @@ public static class AdminEndpoints
 
     private static async Task<IResult> GetHistoryAsync(AppDbContext db, CancellationToken ct)
     {
-        var history = await db.Distributions
+        var rawHistory = await db.Distributions
             .AsNoTracking()
             .Include(d => d.FileVersion)
                 .ThenInclude(fv => fv.File)
@@ -469,20 +469,35 @@ public static class AdminEndpoints
             .Include(d => d.FileVersion.UploadedBy)
             .Include(d => d.Department)
             .OrderByDescending(d => d.FileVersion.CreatedAt)
-            .Select(d => new HistoryDto(
-                d.Id,
-                d.FileVersion.File.FileName,
-                d.FileVersion.VersionNumber,
-                d.FileVersion.File.Folder.Name,
-                d.FileVersion.File.Folder.Category.Name,
-                d.FileVersion.UploadedBy.Username,
-                d.FileVersion.CreatedAt,
-                d.Department.Name,
-                d.ConfirmedAt,
-                d.Status.ToString(),
-                d.FileVersion.File.IsStopped
-            ))
             .ToListAsync(ct);
+
+        var allFolders = await db.Folders.AsNoTracking().ToDictionaryAsync(f => f.Id, ct);
+
+        string GetFullFolderPath(int folderId)
+        {
+            var path = new List<string>();
+            var currId = (int?)folderId;
+            while (currId.HasValue && allFolders.TryGetValue(currId.Value, out var folder))
+            {
+                path.Insert(0, folder.Name);
+                currId = folder.ParentId;
+            }
+            return string.Join(" / ", path);
+        }
+
+        var history = rawHistory.Select(d => new HistoryDto(
+            d.Id,
+            d.FileVersion.FileName,
+            d.FileVersion.VersionNumber,
+            GetFullFolderPath(d.FileVersion.File.FolderId),
+            d.FileVersion.File.Folder.Category.Name,
+            d.FileVersion.UploadedBy.Username,
+            d.FileVersion.CreatedAt,
+            d.Department.Name,
+            d.ConfirmedAt,
+            d.Status.ToString(),
+            d.FileVersion.File.IsStopped
+        )).ToList();
 
         return Results.Ok(history);
     }

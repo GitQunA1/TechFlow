@@ -803,7 +803,8 @@ function HistoryTab({ refreshTrigger }: { refreshTrigger?: number }) {
   const filteredHistory = history.filter((h) => {
     const matchStatus = statusFilter === "All" || h.status === statusFilter;
     const matchCat = categoryFilter === "" || h.categoryName.toLowerCase().includes(categoryFilter.toLowerCase());
-    const matchFolder = folderFilter === "" || h.folderName.toLowerCase().includes(folderFilter.toLowerCase());
+    const fullPath = `${h.categoryName} / ${h.folderName}`.toLowerCase();
+    const matchFolder = folderFilter === "" || fullPath.includes(folderFilter.toLowerCase());
     const matchDept = departmentFilter === "" || h.departmentName.toLowerCase().includes(departmentFilter.toLowerCase());
     return matchStatus && matchCat && matchFolder && matchDept;
   });

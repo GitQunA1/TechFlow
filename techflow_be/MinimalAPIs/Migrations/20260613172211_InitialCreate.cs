@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -288,12 +288,12 @@ namespace MinimalAPIs.Migrations
                 columns: new[] { "Id", "Code", "Name" },
                 values: new object[,]
                 {
-                    { 1, "WOOD1", "Xưởng Mộc 1" },
-                    { 2, "WOOD2", "Xưởng Mộc 2" },
-                    { 3, "CAR1", "Xưởng Chạm 1 (Carving)" },
-                    { 4, "CAR2", "Xưởng Chạm 2 (Carving)" },
-                    { 5, "VFR3", "Xưởng Veneer 3" },
-                    { 6, "VFR4", "Xưởng Veneer 4" }
+                    { 1, "WOOD1", "WOOD1" },
+                    { 2, "WOOD2", "WOOD2" },
+                    { 3, "CAR1", "CAR1" },
+                    { 4, "CAR2", "CAR2" },
+                    { 5, "VFR3", "VFR3" },
+                    { 6, "VFR4", "VFR4" }
                 });
 
             migrationBuilder.InsertData(

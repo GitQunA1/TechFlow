@@ -154,7 +154,12 @@ export default function ProductionWorkspace() {
   const filteredFiles = useMemo(() => {
     return files.filter(f => {
       if (categoryFilter && !(f.categoryName || "Uncategorized").toLowerCase().includes(categoryFilter.toLowerCase())) return false;
-      if (folderFilter && !f.folderName.toLowerCase().includes(folderFilter.toLowerCase())) return false;
+      if (folderFilter) {
+        const fullPath = f.parentFolderName
+          ? `${f.parentFolderName} / ${f.folderName}`
+          : f.folderName;
+        if (!fullPath.toLowerCase().includes(folderFilter.toLowerCase())) return false;
+      }
       if (statusFilter === "confirmed" && f.status !== "Confirmed") return false;
       if (statusFilter === "unconfirmed" && f.status === "Confirmed") return false;
       return true;
@@ -165,7 +170,7 @@ export default function ProductionWorkspace() {
     const categoriesMap: Record<number, { 
       name: string, 
       leader: string | null, 
-      foldersMap: Record<number, { folderId: number, name: string, files: PendingFileDto[], maxCreatedAt: number }>,
+      foldersMap: Record<number, { folderId: number, name: string, parentName: string | null, files: PendingFileDto[], maxCreatedAt: number }>,
       maxCreatedAt: number
     }> = {};
 
@@ -179,7 +184,7 @@ export default function ProductionWorkspace() {
       
       const folId = f.folderId || 0;
       if (!cat.foldersMap[folId]) {
-        cat.foldersMap[folId] = { folderId: folId, name: f.folderName || "General", files: [], maxCreatedAt: 0 };
+        cat.foldersMap[folId] = { folderId: folId, name: f.folderName || "General", parentName: f.parentFolderName || null, files: [], maxCreatedAt: 0 };
       }
       const fol = cat.foldersMap[folId];
       
@@ -316,12 +321,13 @@ export default function ProductionWorkspace() {
                         className={cn("flex flex-col items-start gap-1 p-3 cursor-pointer group relative rounded-sm hover:bg-accent focus:outline-none focus:bg-accent", !n.isRead ? "bg-primary/5" : "")}
                         onClick={() => {
                           if (!n.isRead) handleReadNotification(n.id);
-                          if (n.targetFolderId) {
+                          if (n.targetFolderId || n.targetFileId) {
                             setFolderFilter("");
                             setCategoryFilter("");
                             setStatusFilter("all");
                             setTimeout(() => {
-                              const el = document.getElementById(`folder-${n.targetFolderId}`);
+                              const targetId = n.targetFileId ? `file-${n.targetFileId}` : `folder-${n.targetFolderId}`;
+                              const el = document.getElementById(targetId);
                               if (el) {
                                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                 el.classList.add("ring-4", "ring-primary", "ring-offset-4", "transition-all", "duration-500");
@@ -405,7 +411,7 @@ export default function ProductionWorkspace() {
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <input
             className="flex h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-            placeholder="Search folder..."
+            placeholder="Search folder (parent/child)..."
             value={folderFilter}
             onChange={(e) => setFolderFilter(e.target.value)}
           />
@@ -452,7 +458,15 @@ export default function ProductionWorkspace() {
                   <div key={folder.folderId} id={`folder-${folder.folderId}`} className="bg-muted/30 rounded-xl p-6 border shadow-sm transition-all duration-500">
                     <div className="flex items-center gap-2 mb-4">
                       <FolderOpen className="w-5 h-5 text-primary" />
-                      <h3 className="text-xl font-semibold">{folder.name}</h3>
+                      <h3 className="text-xl font-semibold">
+                        {folder.parentName ? (
+                          <>
+                            <span className="text-muted-foreground font-normal">{folder.parentName}</span>
+                            <span className="text-muted-foreground mx-2">/</span>
+                            {folder.name}
+                          </>
+                        ) : folder.name}
+                      </h3>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                       {folder.files.map((file) => {
@@ -464,6 +478,7 @@ export default function ProductionWorkspace() {
                             key={file.distributionId}
                             file={file}
                             isNew={isNew}
+                            id={`file-${file.fileId}`}
                             onConfirm={() => handleConfirm(file.distributionId)}
                           />
                         );
@@ -598,7 +613,9 @@ function WorkshopCard({ file, isNew, onConfirm }: { file: PendingFileDto; isNew:
                     )}
                   </div>
                 )}
-                <p className="text-xs text-muted-foreground truncate">{file.folderName}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {file.parentFolderName ? `${file.parentFolderName} / ${file.folderName}` : file.folderName}
+                </p>
               </div>
             </div>
           </div>
@@ -617,8 +634,6 @@ function WorkshopCard({ file, isNew, onConfirm }: { file: PendingFileDto; isNew:
                   ? file.confirmedAt
                     ? new Date(file.confirmedAt).toLocaleString()
                     : "Confirmed"
-                  : file.deadlineTime
-                  ? new Date(file.deadlineTime).toLocaleDateString()
                   : new Date(file.createdAt).toLocaleString()}
               </span>
             </div>

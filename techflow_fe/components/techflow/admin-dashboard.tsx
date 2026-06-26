@@ -253,11 +253,18 @@ function SvgDonutChart({ data }: { data: { name: string; value: number }[] }) {
 function DashboardTab({ refreshTrigger }: { refreshTrigger?: number }) {
   const [stats, setStats] = useState<DashboardStatsDto | null>(null);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<AdminCategoryDto[]>([]);
+  const [categoryId, setCategoryId] = useState<number | 'all'>('all');
 
-  const load = useCallback(async () => {
+  // Load categories once on mount
+  useEffect(() => {
+    getAdminCategories().then(setCategories).catch(() => {});
+  }, []);
+
+  const load = useCallback(async (catId: number | 'all') => {
     setLoading(true);
     try {
-      setStats(await getAdminDashboardStats());
+      setStats(await getAdminDashboardStats(catId));
     } catch (err: any) {
       toast.error("Failed to load dashboard", { description: err.message });
     } finally {
@@ -265,7 +272,8 @@ function DashboardTab({ refreshTrigger }: { refreshTrigger?: number }) {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load, refreshTrigger]);
+  // Re-load whenever categoryId or refreshTrigger changes
+  useEffect(() => { load(categoryId); }, [load, categoryId, refreshTrigger]);
 
   if (loading) {
     return (
@@ -285,6 +293,29 @@ function DashboardTab({ refreshTrigger }: { refreshTrigger?: number }) {
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">System Overview</h2>
+          <p className="text-sm text-muted-foreground">Statistics for the newest version of files (NEW)</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Layers className="w-4 h-4 text-muted-foreground" />
+          <select
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary min-w-[180px]"
+            value={categoryId}
+            onChange={(e) => {
+              const val = e.target.value;
+              setCategoryId(val === 'all' ? 'all' : parseInt(val, 10));
+            }}
+          >
+            <option value="all">All Categories</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {/* KPIs */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard icon={<Layers className="size-5" />} label="Active Files" value={String(stats.totalActiveFiles)} hint="Non-stopped files in system" />
@@ -803,8 +834,7 @@ function HistoryTab({ refreshTrigger }: { refreshTrigger?: number }) {
   const filteredHistory = history.filter((h) => {
     const matchStatus = statusFilter === "All" || h.status === statusFilter;
     const matchCat = categoryFilter === "" || h.categoryName.toLowerCase().includes(categoryFilter.toLowerCase());
-    const fullPath = `${h.categoryName} / ${h.folderName}`.toLowerCase();
-    const matchFolder = folderFilter === "" || fullPath.includes(folderFilter.toLowerCase());
+    const matchFolder = folderFilter === "" || h.folderName.toLowerCase().includes(folderFilter.toLowerCase());
     const matchDept = departmentFilter === "" || h.departmentName.toLowerCase().includes(departmentFilter.toLowerCase());
     return matchStatus && matchCat && matchFolder && matchDept;
   });

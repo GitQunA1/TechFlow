@@ -44,8 +44,9 @@ async function adminFetch<T>(path: string, options: RequestInit = {}): Promise<T
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
-export function getAdminDashboardStats(): Promise<DashboardStatsDto> {
-  return adminFetch<DashboardStatsDto>("/api/admin/dashboard/stats");
+export function getAdminDashboardStats(categoryId?: number | 'all'): Promise<DashboardStatsDto> {
+  const query = categoryId && categoryId !== 'all' ? `?categoryId=${categoryId}` : '';
+  return adminFetch<DashboardStatsDto>(`/api/admin/dashboard/stats${query}`);
 }
 
 export function remindOverdue(): Promise<{ message: string }> {

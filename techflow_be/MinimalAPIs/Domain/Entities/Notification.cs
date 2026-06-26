@@ -7,6 +7,7 @@ public class Notification
     public string Title { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
     public int? TargetFolderId { get; set; }
+    public int? TargetFileId { get; set; }
     public bool IsRead { get; set; }
     public DateTime CreatedAt { get; set; }
 

@@ -91,6 +91,7 @@ export interface PendingFileDto {
   fileName: string;
   folderId: number;
   folderName: string;
+  parentFolderName: string | null;
   categoryId: number;
   categoryName: string;
   categoryLeader: string | null;
@@ -112,6 +113,7 @@ export interface NotificationDto {
   title: string;
   message: string;
   targetFolderId: number | null;
+  targetFileId: number | null;
   isRead: boolean;
   createdAt: string;
 }

@@ -6,6 +6,7 @@ public sealed record PendingFileDto(
     string FileName,
     int FolderId,
     string FolderName,
+    string? ParentFolderName,
     int CategoryId,
     string CategoryName,
     string? CategoryLeader,

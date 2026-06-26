@@ -457,10 +457,24 @@ public static class FileEndpoints
 
         file.IsStopped = true;
         file.StoppedDepartmentIds = request.DepartmentIds ?? [];
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        // Only broadcast to the targeted departments
+        
         var departmentIds = request.DepartmentIds ?? [];
+        if (departmentIds.Any())
+        {
+            var notifications = departmentIds.Select(deptId => new Notification
+            {
+                DepartmentId = deptId,
+                Title = $"[EMERGENCY STOP] {file.FileName}",
+                Message = $"Production stopped for {file.FileName}.",
+                TargetFolderId = file.FolderId,
+                TargetFileId = file.Id,
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            }).ToList();
+            dbContext.Notifications.AddRange(notifications);
+        }
+        
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         await broadcaster.BroadcastToDepartmentsAsync(
             departmentIds,
@@ -604,6 +618,7 @@ public static class FileEndpoints
         var newVersion = new FileVersion
         {
             FileId = fileId,
+            FileName = sourceVersion.FileName,
             VersionNumber = nextVersionNumber,
             FileUrl = sourceVersion.FileUrl,
             ChangeReason = request.ChangeReason,
@@ -628,7 +643,7 @@ public static class FileEndpoints
         await broadcaster.BroadcastToDepartmentsAsync(
             validDepartmentIds,
             "New_Version",
-            new { FileId = file.Id, file.FileName, VersionNumber = nextVersionNumber });
+            new { FileId = file.Id, FileName = newVersion.FileName, VersionNumber = nextVersionNumber });
 
         return Results.Ok(new UploadFileResponse(
             file.Id,

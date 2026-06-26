@@ -5,5 +5,6 @@ public sealed record NotificationDto(
     string Title,
     string Message,
     int? TargetFolderId,
+    int? TargetFileId,
     bool IsRead,
     DateTime CreatedAt);

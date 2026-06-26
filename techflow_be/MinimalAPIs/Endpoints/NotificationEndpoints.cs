@@ -43,6 +43,7 @@ public static class NotificationEndpoints
                 x.Title,
                 x.Message,
                 x.TargetFolderId,
+                x.TargetFileId,
                 x.IsRead,
                 x.CreatedAt))
             .ToListAsync(cancellationToken);

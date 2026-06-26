@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using BCrypt.Net;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MinimalAPIs.Contracts.Admin;
 using MinimalAPIs.Data;
@@ -323,15 +324,24 @@ public static class AdminEndpoints
     // DASHBOARD HANDLER
     // ══════════════════════════════════════════════════════════════════════════
 
-    private static async Task<IResult> GetDashboardStatsAsync(AppDbContext db, CancellationToken ct)
+    private static async Task<IResult> GetDashboardStatsAsync(AppDbContext db, [FromQuery] int? categoryId, CancellationToken ct)
     {
         // ── Determine "NEW" file versions ────────────────────────────────────
         // Mirrors frontend logic: within each folder, the FileVersion with the
         // highest CreatedAt is "NEW" (shown with green badge in production view).
 
         // Load all FileVersions with their folder info (lightweight projection)
-        var allVersions = await db.FileVersions
+        var allVersionsQuery = db.FileVersions
             .Include(fv => fv.File)
+            .ThenInclude(f => f.Folder)
+            .AsQueryable();
+
+        if (categoryId.HasValue)
+        {
+            allVersionsQuery = allVersionsQuery.Where(fv => fv.File.Folder.CategoryId == categoryId.Value);
+        }
+
+        var allVersions = await allVersionsQuery
             .Select(fv => new { fv.Id, fv.FileId, FolderId = fv.File.FolderId, fv.CreatedAt })
             .ToListAsync(ct);
 
@@ -353,18 +363,24 @@ public static class AdminEndpoints
             .Select(fv => fv.FileId)
             .ToHashSet();
 
-        var totalActiveFiles = await db.Files
-            .CountAsync(f => !f.IsStopped && newFileIds.Contains(f.Id), ct);
+        var activeFilesQuery = db.Files.Where(f => !f.IsStopped && newFileIds.Contains(f.Id));
+        if (categoryId.HasValue)
+        {
+            activeFilesQuery = activeFilesQuery.Where(f => f.Folder.CategoryId == categoryId.Value);
+        }
+        var totalActiveFiles = await activeFilesQuery.CountAsync(ct);
 
         // ── Distributions (only for NEW versions) ─────────────────────────────
-        var distributions = await db.Distributions
+        var distributionsQuery = db.Distributions
             .Where(d => newVersionIds.Contains(d.FileVersionId))
             .Include(d => d.Department)
             .Include(d => d.FileVersion)
                 .ThenInclude(fv => fv.File)
                     .ThenInclude(f => f.Folder)
                         .ThenInclude(fo => fo.Category)
-            .ToListAsync(ct);
+            .AsQueryable();
+
+        var distributions = await distributionsQuery.ToListAsync(ct);
 
         var now = DateTime.UtcNow;
 

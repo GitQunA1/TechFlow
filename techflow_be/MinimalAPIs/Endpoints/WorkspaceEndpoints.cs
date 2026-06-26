@@ -44,6 +44,10 @@ public static class WorkspaceEndpoints
             .Include(x => x.FileVersion)
                 .ThenInclude(v => v.File)
                     .ThenInclude(f => f.Folder)
+                        .ThenInclude(f => f.Parent)
+            .Include(x => x.FileVersion)
+                .ThenInclude(v => v.File)
+                    .ThenInclude(f => f.Folder)
                         .ThenInclude(f => f.Category)
                             .ThenInclude(c => c.Leader)
             .Where(x => x.DepartmentId == departmentId.Value)
@@ -58,6 +62,7 @@ public static class WorkspaceEndpoints
                 x.FileVersion.FileName,
                 x.FileVersion.File.FolderId,
                 x.FileVersion.File.Folder.Name,
+                x.FileVersion.File.Folder.Parent?.Name,
                 x.FileVersion.File.Folder.CategoryId,
                 x.FileVersion.File.Folder.Category.Name,
                 x.FileVersion.File.Folder.Category.Leader?.Username,

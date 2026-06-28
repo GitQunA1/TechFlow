@@ -637,12 +637,24 @@ public static class FileEndpoints
             DeadlineTime = DateTime.UtcNow.AddHours(24)
         }).ToList();
 
+        var notifications = validDepartmentIds.Select(deptId => new Notification
+        {
+            DepartmentId = deptId,
+            Title = "File version rolled back",
+            Message = $"{file.FileName} was rolled back to v{nextVersionNumber}.",
+            TargetFolderId = file.FolderId,
+            TargetFileId = file.Id,
+            IsRead = false,
+            CreatedAt = DateTime.UtcNow
+        }).ToList();
+
         dbContext.Distributions.AddRange(distributions);
+        dbContext.Notifications.AddRange(notifications);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         await broadcaster.BroadcastToDepartmentsAsync(
             validDepartmentIds,
-            "New_Version",
+            "NewUploadNotification",
             new { FileId = file.Id, FileName = newVersion.FileName, VersionNumber = nextVersionNumber });
 
         return Results.Ok(new UploadFileResponse(

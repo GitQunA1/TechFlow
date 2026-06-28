@@ -497,7 +497,7 @@ export default function ProductionWorkspace() {
 
 // ── Workshop Card ───────────────────────────────────────────────────────────
 
-function WorkshopCard({ file, isNew, onConfirm }: { file: PendingFileDto; isNew: boolean; onConfirm: () => void }) {
+function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; isNew: boolean; onConfirm: () => void; id?: string }) {
   const [confirming, setConfirming] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [hasViewed, setHasViewed] = useState(false);
@@ -523,7 +523,7 @@ function WorkshopCard({ file, isNew, onConfirm }: { file: PendingFileDto; isNew:
   if (showStop) {
     return (
       <>
-        <div className="relative flex flex-col rounded-xl border-2 border-[#E50014] bg-[#E50014] text-white shadow-lg overflow-hidden transition-all duration-300">
+        <div id={id} className="relative flex flex-col rounded-xl border-2 border-[#E50014] bg-[#E50014] text-white shadow-lg overflow-hidden transition-all duration-300">
           <div className="p-6 flex flex-col items-center text-center space-y-4 flex-1 justify-center">
             <OctagonX className="w-12 h-12 text-white animate-pulse" />
             <h2 className="text-xl font-black tracking-tight">STOP PRODUCTION IMMEDIATELY</h2>
@@ -565,6 +565,7 @@ function WorkshopCard({ file, isNew, onConfirm }: { file: PendingFileDto; isNew:
   return (
     <>
       <div
+        id={id}
         className={cn(
           "relative flex flex-col rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md",
           isOverdue 

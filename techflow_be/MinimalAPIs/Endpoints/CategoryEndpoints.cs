@@ -23,12 +23,12 @@ public static class CategoryEndpoints
     {
         var categories = await dbContext.Categories
             .AsNoTracking()
-            .Include(x => x.Leader)
+            .Include(x => x.Users)
             .OrderBy(x => x.Name)
             .Select(x => new CategoryDto(
                 x.Id,
                 x.Name,
-                x.Leader != null ? x.Leader.Username : null))
+                x.Users.Any() ? string.Join(", ", x.Users.OrderBy(u => u.Username).Select(u => u.Username)) : null))
             .ToListAsync(cancellationToken);
 
         return Results.Ok(categories);

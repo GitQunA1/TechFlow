@@ -470,9 +470,9 @@ export default function ProductionWorkspace() {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                       {folder.files.map((file) => {
-                        const folderFiles = folder.files;
-                        const maxCreatedAt = folderFiles.length > 0 ? Math.max(...folderFiles.map(f => new Date(f.createdAt).getTime())) : 0;
-                        const isNew = new Date(file.createdAt).getTime() === maxCreatedAt && maxCreatedAt > 0;
+                        const allVersionsOfThisFile = files.filter(f => f.fileId === file.fileId);
+                        const maxVersionNum = allVersionsOfThisFile.length > 0 ? Math.max(...allVersionsOfThisFile.map(f => f.versionNumber)) : 0;
+                        const isNew = file.versionNumber === maxVersionNum && maxVersionNum > 0;
                         return (
                           <WorkshopCard
                             key={file.distributionId}

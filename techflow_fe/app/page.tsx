@@ -20,13 +20,17 @@ export default function Page() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!username || !password) return;
+    const formData = new FormData(e.currentTarget);
+    const userVal = formData.get("username")?.toString() || username;
+    const passVal = formData.get("password")?.toString() || password;
+
+    if (!userVal || !passVal) return;
     
     setLoading(true);
     try {
-      await login(username, password);
+      await login(userVal, passVal);
       toast.success("Welcome back!");
     } catch (err: any) {
       toast.error("Login failed", { description: err.message });
@@ -57,6 +61,8 @@ export default function Page() {
                 </label>
                 <input
                   id="username"
+                  name="username"
+                  required
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   placeholder="e.g. tan_jc"
                   value={username}
@@ -70,7 +76,9 @@ export default function Page() {
                 </label>
                 <input
                   id="password"
+                  name="password"
                   type="password"
+                  required
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -79,7 +87,7 @@ export default function Page() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button type="submit" className="w-full" disabled={loading || !username || !password}>
+              <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : "Sign in"}
               </Button>
             </CardFooter>

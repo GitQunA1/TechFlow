@@ -723,6 +723,7 @@ function FileViewerPane({
           </h3>
           <p className="text-sm text-muted-foreground mt-0.5">
             {files.length} {files.length === 1 ? "file" : "files"} in this folder
+            {folder.children && folder.children.length > 0 && ` • ${folder.children.length} subfolder${folder.children.length === 1 ? '' : 's'}`}
           </p>
         </div>
         {folder.parentId !== null && (

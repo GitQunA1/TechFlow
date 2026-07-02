@@ -208,7 +208,7 @@ public static class FileEndpoints
                 FileVersionId = fileVersion.Id,
                 DepartmentId = deptId,
                 Status = DistributionStatus.Pending,
-                DeadlineTime = DateTime.UtcNow.AddMinutes(1),
+                DeadlineTime = DateTime.UtcNow.AddHours(24),
                 ConfirmedAt = null
             }).ToList();
 
@@ -354,7 +354,7 @@ public static class FileEndpoints
                 FileVersionId = fileVersion.Id,
                 DepartmentId = dn.DepartmentId,
                 Status = DistributionStatus.Pending,
-                DeadlineTime = DateTime.UtcNow.AddMinutes(1),
+                DeadlineTime = DateTime.UtcNow.AddHours(24),
                 ConfirmedAt = null,
                 Note = dn.Note
             }).ToList();
@@ -634,7 +634,7 @@ public static class FileEndpoints
             FileVersionId = newVersion.Id,
             DepartmentId = deptId,
             Status = DistributionStatus.Pending,
-            DeadlineTime = DateTime.UtcNow.AddMinutes(1)
+            DeadlineTime = DateTime.UtcNow.AddHours(24)
         }).ToList();
 
         var notifications = validDepartmentIds.Select(deptId => new Notification

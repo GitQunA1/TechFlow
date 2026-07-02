@@ -45,6 +45,7 @@ export interface FolderTreeDto {
   name: string;
   parentId: number | null;
   children: FolderTreeDto[];
+  hasStoppedFiles: boolean;
 }
 
 export interface CreateFolderRequest {

@@ -511,7 +511,11 @@ function FolderTreeNode({
       <div
         className={cn(
           "group flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors text-sm",
-          isSelected ? "bg-primary text-primary-foreground font-medium shadow-sm" : "hover:bg-muted/60 text-foreground"
+          isSelected 
+            ? "bg-primary text-primary-foreground font-medium shadow-sm" 
+            : folder.hasStoppedFiles
+              ? "bg-red-500/15 hover:bg-red-500/25 text-red-700 dark:text-red-400"
+              : "hover:bg-muted/60 text-foreground"
         )}
         style={{ paddingLeft: `${level * 1 + 0.5}rem` }}
         onClick={() => onSelect(folder.id)}

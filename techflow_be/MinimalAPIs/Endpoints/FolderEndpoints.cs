@@ -36,8 +36,16 @@ public static class FolderEndpoints
             .OrderBy(x => x.Name)
             .ToListAsync(cancellationToken);
 
+        var stoppedFolderIds = await dbContext.Files
+            .Where(f => f.IsStopped && f.Folder.CategoryId == categoryId)
+            .Select(f => f.FolderId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+            
+        var stoppedFoldersSet = new HashSet<int>(stoppedFolderIds);
+
         var folderLookup = folders.ToLookup(x => x.ParentId);
-        var tree = BuildTree(folderLookup, null);
+        var tree = BuildTree(folderLookup, null, stoppedFoldersSet);
 
         return Results.Ok(tree);
     }
@@ -251,15 +259,21 @@ public static class FolderEndpoints
         return depth;
     }
 
-    private static List<FolderTreeDto> BuildTree(ILookup<int?, Folder> lookup, int? parentId)
+    private static List<FolderTreeDto> BuildTree(ILookup<int?, Folder> lookup, int? parentId, HashSet<int> stoppedFoldersSet)
     {
         return lookup[parentId]
             .OrderBy(x => x.Name)
-            .Select(folder => new FolderTreeDto(
-                folder.Id,
-                folder.Name,
-                folder.ParentId,
-                BuildTree(lookup, folder.Id)))
+            .Select(folder => 
+            {
+                var children = BuildTree(lookup, folder.Id, stoppedFoldersSet);
+                bool hasStoppedFiles = stoppedFoldersSet.Contains(folder.Id) || children.Any(c => c.HasStoppedFiles);
+                return new FolderTreeDto(
+                    folder.Id,
+                    folder.Name,
+                    folder.ParentId,
+                    children,
+                    hasStoppedFiles);
+            })
             .ToList();
     }
 }

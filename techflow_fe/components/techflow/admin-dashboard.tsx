@@ -992,7 +992,7 @@ export default function AdminDashboard() {
     const offUpload = on("NewUploadNotification", handleRefresh);
     const offStop = on("Emergency_Stop", handleRefresh);
     const offResume = on("Production_Resume", handleRefresh);
-    const offOverdue = on("OverdueNotification", handleRefresh);
+    const offOverdue = on("DeadlineOverdue", handleRefresh);
     const offDelete = on("DataDeleted", handleRefresh);
 
     return () => {

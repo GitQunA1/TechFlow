@@ -121,11 +121,19 @@ export default function ProductionWorkspace() {
       fetchData();
     });
 
+    const offOverdue = on("DeadlineOverdue", (payload: any) => {
+      toast.warning("File Overdue", {
+        description: payload.message || "You have overdue files to confirm.",
+      });
+      fetchData();
+    });
+
     return () => {
       offUpload();
       offStop();
       offResume();
       offConfirm();
+      offOverdue();
     };
   }, [on, user?.departmentId, fetchData]);
 

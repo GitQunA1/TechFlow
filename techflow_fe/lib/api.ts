@@ -19,7 +19,7 @@ import type {
   DepartmentNoteRequest,
 } from "./types";
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5165";
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://technical.vfr.net.vn:10114";
 
 // ── Token storage ─────────────────────────────────────────────────────────────
 

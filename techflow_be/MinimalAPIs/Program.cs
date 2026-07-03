@@ -22,7 +22,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("NextJsDev", policy =>
         policy
-            .WithOrigins("http://localhost:10115", "http://172.29.127.250:10115")
+            .WithOrigins("http://localhost:10115", "http://172.29.127.250:10115", "http://technical.vfr.net.vn:10115")
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials());

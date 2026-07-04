@@ -163,15 +163,11 @@ export async function deleteFolder(folderId: number): Promise<void> {
 
 // ── Files ─────────────────────────────────────────────────────────────────────
 
-/** Upload bản vẽ mới bằng đường dẫn nội bộ (không upload file vật lý) */
-export async function uploadFileByPath(request: {
-  folderId: number;
-  fileName: string;
-  departmentIds: number[];
-}): Promise<UploadFileResponse> {
-  return apiFetch<UploadFileResponse>("/api/files/upload-by-path", {
+/** Upload bản vẽ mới bằng vật lý file */
+export async function uploadFile(formData: FormData): Promise<UploadFileResponse> {
+  return apiFetch<UploadFileResponse>("/api/files/upload", {
     method: "POST",
-    body: JSON.stringify(request),
+    body: formData,
   });
 }
 
@@ -192,17 +188,14 @@ export async function resumeFile(
   });
 }
 
-/** Resume kèm bản vẽ mới – dùng đường dẫn nội bộ thay vì upload file */
-export async function resumeFileWithPath(
+/** Resume kèm bản vẽ mới (upload file vật lý) */
+export async function resumeFileWithFile(
   fileId: number,
-  request: {
-    fileName: string;
-    departmentNotes: DepartmentNoteRequest[];
-  }
+  formData: FormData
 ): Promise<UploadFileResponse> {
-  return apiFetch<UploadFileResponse>(`/api/files/${fileId}/resume-with-path`, {
+  return apiFetch<UploadFileResponse>(`/api/files/${fileId}/resume-with-file`, {
     method: "POST",
-    body: JSON.stringify(request),
+    body: formData,
   });
 }
 

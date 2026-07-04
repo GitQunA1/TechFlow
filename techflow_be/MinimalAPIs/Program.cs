@@ -4,6 +4,7 @@ using MinimalAPIs.Endpoints;
 using MinimalAPIs.Hubs;
 using MinimalAPIs.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -100,7 +101,18 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
-app.UseStaticFiles();
+var provider = new FileExtensionContentTypeProvider();
+provider.Mappings[".dwg"] = "application/acad"; // Hoặc "image/vnd.dwg"
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider = provider,
+    OnPrepareResponse = ctx =>
+    {
+        // Cho phép frontend tải trực tiếp hoặc view tuỳ file extension
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+    }
+});
 
 // Enable CORS before auth middleware
 app.UseCors("NextJsDev");

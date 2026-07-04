@@ -29,9 +29,11 @@ public static class FileEndpoints
             .WithTags("Files")
             .RequireAuthorization();
 
-        // ── POST /api/files/upload-by-path ─────────────────────────────────
-        group.MapPost("/upload-by-path", async (
-            [FromBody] UploadFileByPathRequest request,
+        // ── POST /api/files/upload ─────────────────────────────────────────
+        group.MapPost("/upload", async (
+            [FromForm] int folderId,
+            [FromForm] string departmentIds,
+            IFormFile file,
             ClaimsPrincipal user,
             AppDbContext dbContext,
             IHubContext<NotificationHub> hubContext,
@@ -39,20 +41,20 @@ public static class FileEndpoints
             CancellationToken cancellationToken) =>
         {
             // ── Validation ────────────────────────────────────────────────
-            if (request.FolderId <= 0)
+            if (folderId <= 0)
                 return Results.BadRequest("FolderId is required.");
 
-            if (string.IsNullOrWhiteSpace(request.FileName))
-                return Results.BadRequest("FileName is required.");
+            if (file == null || file.Length == 0)
+                return Results.BadRequest("File is required.");
 
-            if (!IsValidExtension(request.FileName))
+            if (!IsValidExtension(file.FileName))
                 return Results.BadRequest("Only .png, .pdf, and .dwg files are allowed.");
 
-            var folderExists = await dbContext.Folders.AnyAsync(x => x.Id == request.FolderId, cancellationToken);
+            var folderExists = await dbContext.Folders.AnyAsync(x => x.Id == folderId, cancellationToken);
             if (!folderExists)
                 return Results.NotFound("Folder not found.");
 
-            var departmentIdList = request.DepartmentIds.Distinct().ToList();
+            var departmentIdList = System.Text.Json.JsonSerializer.Deserialize<List<int>>(departmentIds)?.Distinct().ToList() ?? new List<int>();
             if (departmentIdList.Count == 0)
                 return Results.BadRequest("At least one departmentId is required.");
 
@@ -68,16 +70,32 @@ public static class FileEndpoints
             if (!int.TryParse(currentUserId, out var userId))
                 return Results.Unauthorized();
 
+            // ── Save physical file ────────────────────────────────────────
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            var originalFileName = Path.GetFileName(file.FileName);
+            var uniqueFileName = $"{Guid.NewGuid():N}_{originalFileName}";
+            var physicalFilePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            using (var stream = new FileStream(physicalFilePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream, cancellationToken);
+            }
+
+            var fileUrl = $"/uploads/{uniqueFileName}";
+
             // ── Resolve or create File record ─────────────────────────────
             FileEntity? fileRecord = await dbContext.Files
-                .FirstOrDefaultAsync(x => x.FolderId == request.FolderId, cancellationToken);
+                .FirstOrDefaultAsync(x => x.FolderId == folderId, cancellationToken);
 
             if (fileRecord is null)
             {
                 fileRecord = new FileEntity
                 {
-                    FolderId = request.FolderId,
-                    FileName = request.FileName,
+                    FolderId = folderId,
+                    FileName = originalFileName,
                     IsStopped = false,
                     CreatedAt = DateTime.UtcNow
                 };
@@ -91,14 +109,13 @@ public static class FileEndpoints
                 .Select(x => (int?)x.VersionNumber)
                 .MaxAsync(cancellationToken) ?? 0;
 
-            // ── Insert FileVersion (lưu FilePath thay vì upload cloud) ────
+            // ── Insert FileVersion ────────────────────────────────────────
             var fileVersion = new FileVersion
             {
                 FileId = fileRecord.Id,
-                FileName = request.FileName,
+                FileName = originalFileName,
                 VersionNumber = nextVersionNumber + 1,
-                FilePath = Path.Combine(BasePath, request.FileName),
-                FileUrl = null,   // Không còn dùng Cloudinary
+                FileUrl = fileUrl,
                 ChangeReason = null,
                 UploadedById = userId,
                 CreatedAt = DateTime.UtcNow
@@ -121,7 +138,7 @@ public static class FileEndpoints
                 DepartmentId = deptId,
                 Title = "New file version uploaded",
                 Message = $"{fileRecord.FileName} v{fileVersion.VersionNumber} was uploaded.",
-                TargetFolderId = request.FolderId,
+                TargetFolderId = folderId,
                 IsRead = false,
                 CreatedAt = DateTime.UtcNow
             }).ToList();
@@ -152,10 +169,10 @@ public static class FileEndpoints
                 fileRecord.Id,
                 fileVersion.Id,
                 fileVersion.VersionNumber,
-                fileVersion.FilePath));
+                fileVersion.FileUrl));
         })
-        .WithSummary("Upload a new drawing by file path (no physical file upload)")
-        .WithDescription("Accepts JSON with fileName, filePath, folderId, departmentIds. No Cloudinary, no multipart.");
+        .DisableAntiforgery()
+        .WithSummary("Upload a new drawing via multipart/form-data");
 
         group.MapGet("/{id:int}/history", GetHistoryAsync);
         group.MapPost("/{id:int}/stop", StopAsync);
@@ -163,10 +180,10 @@ public static class FileEndpoints
         group.MapPost("/{fileId:int}/versions/{versionId:int}/rollback", RollbackAsync);
 
         // ── POST /api/files/{id}/resume-with-file ─────────────────────────
-        // Đã refactor: nhận JSON thay vì multipart/form-data
-        group.MapPost("/{id:int}/resume-with-path", async (
+        group.MapPost("/{id:int}/resume-with-file", async (
             int id,
-            [FromBody] ResumeWithPathRequest request,
+            [FromForm] string departmentNotes,
+            IFormFile file,
             ClaimsPrincipal user,
             AppDbContext dbContext,
             NotificationBroadcaster broadcaster,
@@ -187,14 +204,31 @@ public static class FileEndpoints
             if (!fileRecord.IsStopped)
                 return Results.BadRequest("File is not stopped.");
 
-            if (string.IsNullOrWhiteSpace(request.FileName))
-                return Results.BadRequest("FileName is required.");
+            if (file == null || file.Length == 0)
+                return Results.BadRequest("File is required.");
 
-            if (!IsValidExtension(request.FileName))
+            if (!IsValidExtension(file.FileName))
                 return Results.BadRequest("Only .png, .pdf, and .dwg files are allowed.");
 
-            if (request.DepartmentNotes == null || request.DepartmentNotes.Count == 0)
+            var notesList = System.Text.Json.JsonSerializer.Deserialize<List<DepartmentNoteDto>>(departmentNotes, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (notesList == null || notesList.Count == 0)
                 return Results.BadRequest("At least one department note is required.");
+
+            // ── Save physical file ────────────────────────────────────────
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            var originalFileName = Path.GetFileName(file.FileName);
+            var uniqueFileName = $"{Guid.NewGuid():N}_{originalFileName}";
+            var physicalFilePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            using (var stream = new FileStream(physicalFilePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream, cancellationToken);
+            }
+
+            var fileUrl = $"/uploads/{uniqueFileName}";
 
             // Create new FileVersion with path
             var nextVersionNumber = await dbContext.FileVersions
@@ -205,10 +239,9 @@ public static class FileEndpoints
             var fileVersion = new FileVersion
             {
                 FileId = fileRecord.Id,
-                FileName = request.FileName,
+                FileName = originalFileName,
                 VersionNumber = nextVersionNumber + 1,
-                FilePath = Path.Combine(BasePath, request.FileName),
-                FileUrl = null,
+                FileUrl = fileUrl,
                 ChangeReason = "Resumed with new revision",
                 UploadedById = userId,
                 CreatedAt = DateTime.UtcNow
@@ -221,9 +254,9 @@ public static class FileEndpoints
 
             await dbContext.SaveChangesAsync(cancellationToken);
 
-            var allDeptIds = request.DepartmentNotes.Select(d => d.DepartmentId).Distinct().ToList();
+            var allDeptIds = notesList.Select(d => d.DepartmentId).Distinct().ToList();
 
-            var distributions = request.DepartmentNotes.Select(dn => new Distribution
+            var distributions = notesList.Select(dn => new Distribution
             {
                 FileVersionId = fileVersion.Id,
                 DepartmentId = dn.DepartmentId,
@@ -234,7 +267,7 @@ public static class FileEndpoints
             }).ToList();
             dbContext.Distributions.AddRange(distributions);
 
-            var notifications = request.DepartmentNotes.Select(dn => new Notification
+            var notifications = notesList.Select(dn => new Notification
             {
                 DepartmentId = dn.DepartmentId,
                 Title = dn.IsAffected
@@ -269,9 +302,10 @@ public static class FileEndpoints
                 fileRecord.Id,
                 fileVersion.Id,
                 fileVersion.VersionNumber,
-                fileVersion.FilePath));
+                fileVersion.FileUrl));
         })
-        .WithSummary("Resume a stopped file with a new file path (no physical file upload)");
+        .DisableAntiforgery()
+        .WithSummary("Resume a stopped file with a new physical file");
 
         return app;
     }
@@ -293,7 +327,7 @@ public static class FileEndpoints
             .Select(x => new FileHistoryItemDto(
                 x.Id,
                 x.VersionNumber,
-                x.FilePath,
+                x.FileUrl,
                 x.ChangeReason,
                 x.UploadedBy.Username,
                 x.CreatedAt))
@@ -481,14 +515,13 @@ public static class FileEndpoints
             .MaxAsync(cancellationToken) ?? 0;
         nextVersionNumber++;
 
-        // Rollback: tái sử dụng FilePath của version cũ
+        // Rollback: tái sử dụng FileUrl của version cũ
         var newVersion = new FileVersion
         {
             FileId = fileId,
             FileName = sourceVersion.FileName,
             VersionNumber = nextVersionNumber,
-            FilePath = sourceVersion.FilePath,  // Reuse đường dẫn cũ
-            FileUrl = null,
+            FileUrl = sourceVersion.FileUrl,  // Reuse đường dẫn cũ
             ChangeReason = request.ChangeReason,
             UploadedById = userId,
             CreatedAt = DateTime.UtcNow
@@ -529,6 +562,6 @@ public static class FileEndpoints
             file.Id,
             newVersion.Id,
             nextVersionNumber,
-            newVersion.FilePath));
+            newVersion.FileUrl));
     }
 }

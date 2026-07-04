@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { getDepartments, resumeFile, resumeFileWithPath, DepartmentDto } from "@/lib/api";
+import { getDepartments, resumeFile, resumeFileWithFile, DepartmentDto } from "@/lib/api";
 import { DepartmentNoteRequest } from "@/lib/types";
 import { toast } from "sonner";
 
@@ -51,7 +51,8 @@ export function ResumeModal({
   // Per-department notes: Record<deptId, { note, isAffected }>
   const [deptNotes, setDeptNotes] = useState<Record<number, DeptNoteState>>({});
 
-  // New file path (Case 2 – thay thế drag-drop)
+  // New file upload
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [newFileName, setNewFileName] = useState("");
   const [fileError, setFileError] = useState<string | null>(null);
 
@@ -66,6 +67,7 @@ export function ResumeModal({
     if (!open) {
       // Reset
       setTab("simple");
+      setSelectedFile(null);
       setNewFileName("");
       setFileError(null);
       setDeptNotes({});
@@ -131,15 +133,16 @@ export function ResumeModal({
     }
   };
 
-  // Case 2 submit – dùng đường dẫn nội bộ thay vì upload file
+  // Case 2 submit – upload file vật lý
   const handleResumeWithFile = async () => {
-    if (!isValid || !newFileName || fileError) return;
+    if (!isValid || !selectedFile || fileError) return;
     setSubmitting(true);
     try {
-      await resumeFileWithPath(fileId, {
-        fileName: newFileName,
-        departmentNotes: buildDepartmentNotes(),
-      });
+      const formData = new FormData();
+      formData.append("departmentNotes", JSON.stringify(buildDepartmentNotes()));
+      formData.append("file", selectedFile);
+
+      await resumeFileWithFile(fileId, formData);
       toast.success("Resumed with new file version!", {
         description: "A new version has been created and all departments must re-confirm.",
       });
@@ -148,17 +151,6 @@ export function ResumeModal({
       toast.error("Resume with file failed", { description: err.message });
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setNewFileName(file.name);
-      setFileError(validatePath(file.name) ? null : "Chỉ cho phép file .png, .pdf hoặc .dwg.");
-    } else {
-      setNewFileName("");
-      setFileError(null);
     }
   };
 
@@ -214,15 +206,30 @@ export function ResumeModal({
           {tab === "with-file" && (
             <div>
               <label className="text-sm font-medium mb-2 block">
-                Chọn bản vẽ mới <span className="text-destructive">*</span>
+                Chọn bản vẽ mới thay thế <span className="text-destructive">*</span>
               </label>
+              <p className="text-xs text-muted-foreground mb-4">
+                Chọn file bản vẽ từ máy tính của bạn (hệ thống sẽ lưu trực tiếp trên server).
+              </p>
               <div className={cn(
                 "border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center transition-colors relative",
                 fileError ? "border-destructive/50 bg-destructive/5" : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50"
               )}>
                 <input
                   type="file"
-                  onChange={handleFileChange}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setSelectedFile(file);
+                      setNewFileName(file.name);
+                      const isValid = validatePath(file.name);
+                      setFileError(isValid ? null : "Chỉ chấp nhận file .png, .pdf, .dwg");
+                    } else {
+                      setSelectedFile(null);
+                      setNewFileName("");
+                      setFileError(null);
+                    }
+                  }}
                   accept=".png,.pdf,.dwg"
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
@@ -363,7 +370,7 @@ export function ResumeModal({
             ) : (
               <Button
                 className="min-w-[160px]"
-                disabled={!isValid || !newFileName || !!fileError || submitting}
+                disabled={!isValid || !selectedFile || !!fileError || submitting}
                 onClick={handleResumeWithFile}
               >
                 {submitting ? (

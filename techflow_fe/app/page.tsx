@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { HardHat, PencilRuler, ShieldCheck, Workflow, Loader2 } from "lucide-react";
+import { HardHat, PencilRuler, ShieldCheck, Workflow, Loader2, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import TechLeaderWorkspace from "@/components/techflow/tech-leader-workspace";
 import ProductionWorkspace from "@/components/techflow/production-workspace";
@@ -11,9 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { useLanguage } from "@/lib/i18n-context";
 
 export default function Page() {
   const { user, isAuthenticated, login, logout } = useAuth();
+  const { t, language, setLanguage } = useLanguage();
   
   // Login State
   const [username, setUsername] = useState("");
@@ -31,9 +33,9 @@ export default function Page() {
     setLoading(true);
     try {
       await login(userVal, passVal);
-      toast.success("Welcome back!");
+      toast.success(t("common.welcomeBack"));
     } catch (err: any) {
-      toast.error("Login failed", { description: err.message });
+      toast.error(t("common.error"), { description: err.message });
     } finally {
       setLoading(false);
     }
@@ -48,16 +50,16 @@ export default function Page() {
               <Workflow className="w-8 h-8" />
               <span className="text-2xl font-bold tracking-tight">TechFlow</span>
             </div>
-            <CardTitle>Welcome back</CardTitle>
+            <CardTitle>{t("common.welcomeBack")}</CardTitle>
             <CardDescription>
-              Sign in to your workspace.
+              {t("common.signInPrompt")}
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleLogin}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium leading-none" htmlFor="username">
-                  Username
+                  {t("common.username")}
                 </label>
                 <input
                   id="username"
@@ -72,7 +74,7 @@ export default function Page() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium leading-none" htmlFor="password">
-                  Password
+                  {t("common.password")}
                 </label>
                 <input
                   id="password"
@@ -88,7 +90,7 @@ export default function Page() {
             </CardContent>
             <CardFooter>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : "Sign in"}
+                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : t("common.signIn")}
               </Button>
             </CardFooter>
           </form>
@@ -104,7 +106,7 @@ export default function Page() {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 text-primary">
             <Workflow className="w-6 h-6" />
-            <span className="text-lg font-bold tracking-tight">TechFlow</span>
+            <span className="text-lg font-bold tracking-tight">{t("header.title")}</span>
           </div>
 
           <div className="flex flex-1 items-center justify-end space-x-4">
@@ -118,8 +120,18 @@ export default function Page() {
                   {user.role === "Admin" && <ShieldCheck className="w-3 h-3 ml-1 inline" />}
                 </Badge>
               </div>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="w-8 h-8 rounded-full" 
+                onClick={() => setLanguage(language === 'en' ? 'vi' : 'en')}
+                title={t("common.language")}
+              >
+                <Globe className="w-4 h-4" />
+                <span className="sr-only">Toggle Language</span>
+              </Button>
               <Button variant="ghost" size="sm" onClick={logout}>
-                Log out
+                {t("common.logout")}
               </Button>
             </div>
           </div>
@@ -136,7 +148,7 @@ export default function Page() {
       {/* FOOTER */}
       <footer className="py-6 border-t mt-auto">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>TechFlow © 2026. Factory Drawing & Document Management.</p>
+          <p>{t("header.footer")}</p>
         </div>
       </footer>
     </div>

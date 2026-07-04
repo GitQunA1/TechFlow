@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { getDepartments, uploadFileByPath, DepartmentDto } from "@/lib/api";
+import { getDepartments, uploadFile, DepartmentDto } from "@/lib/api";
 import { toast } from "sonner";
 
 interface UploadModalProps {
@@ -45,6 +45,7 @@ export function UploadModal({
   folderName,
   folderId,
 }: UploadModalProps) {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState("");
   const [fileError, setFileError] = useState<string | null>(null);
   const [selectedDepts, setSelectedDepts] = useState<number[]>([]);
@@ -62,6 +63,7 @@ export function UploadModal({
         .catch((err) => toast.error("Failed to load departments", { description: err.message }))
         .finally(() => setLoadingDepts(false));
     } else {
+      setSelectedFile(null);
       setFileName("");
       setFileError(null);
       setSelectedDepts([]);
@@ -71,10 +73,12 @@ export function UploadModal({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setSelectedFile(file);
       setFileName(file.name);
       const { valid, error } = validatePath(file.name);
       setFileError(valid ? null : (error ?? null));
     } else {
+      setSelectedFile(null);
       setFileName("");
       setFileError(null);
     }
@@ -89,6 +93,10 @@ export function UploadModal({
   const handleSubmit = async () => {
     const { valid, error } = validatePath(fileName);
     if (!valid) { setFileError(error ?? "File không hợp lệ."); return; }
+    if (!selectedFile) {
+      toast.error("Vui lòng chọn bản vẽ.");
+      return;
+    }
     if (selectedDepts.length === 0) {
       toast.error("Vui lòng chọn ít nhất một phòng ban.");
       return;
@@ -96,11 +104,12 @@ export function UploadModal({
 
     setSubmitting(true);
     try {
-      await uploadFileByPath({
-        folderId,
-        fileName: fileName,
-        departmentIds: selectedDepts,
-      });
+      const formData = new FormData();
+      formData.append("folderId", folderId.toString());
+      formData.append("departmentIds", JSON.stringify(selectedDepts));
+      formData.append("file", selectedFile);
+
+      await uploadFile(formData);
       toast.success("Lưu bản vẽ thành công!", {
         description: `${fileName} đã được phân phối đến ${selectedDepts.length} phòng ban.`,
       });
@@ -135,7 +144,7 @@ export function UploadModal({
               Chọn bản vẽ <span className="text-destructive">*</span>
             </label>
             <p className="text-xs text-muted-foreground">
-              Chọn file bản vẽ từ máy tính của bạn (hệ thống chỉ lưu tên file để trỏ đến mạng nội bộ).
+              Chọn file bản vẽ từ máy tính của bạn (hệ thống sẽ lưu trực tiếp trên server).
             </p>
             <div className={cn(
               "border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center text-center transition-colors relative",

@@ -17,6 +17,7 @@ import {
   Play,
   Plus,
   Upload,
+  UploadCloud,
   Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -35,7 +36,6 @@ import { UploadModal } from "./upload-modal";
 import { RollbackModal } from "./rollback-modal";
 import { StopModal } from "./stop-modal";
 import { ResumeModal } from "./resume-modal";
-import { FileViewerModal } from "./file-viewer-modal";
 import { useAuth } from "@/lib/auth-context";
 import {
   getCategories,
@@ -51,9 +51,11 @@ import {
 } from "@/lib/api";
 import { toast } from "sonner";
 import { useSignalR } from "@/lib/use-signalr";
+import { useLanguage } from "@/lib/i18n-context";
 
 export default function TechLeaderWorkspace() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [categories, setCategories] = useState<CategoryDto[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   
@@ -84,10 +86,6 @@ export default function TechLeaderWorkspace() {
     sentToDepartments: string[];
   } | null>(null);
 
-  const [viewCtx, setViewCtx] = useState<{
-    filePath: string | null;
-    fileName: string;
-  } | null>(null);
 
   const { on } = useSignalR({
     role: user?.role === "Admin" ? "Admin" : undefined,
@@ -122,9 +120,9 @@ export default function TechLeaderWorkspace() {
       {!selectedCategoryId && (
         <>
           <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight mb-2">Tech Leader Workspace</h1>
+            <h1 className="text-3xl font-bold tracking-tight mb-2">{t("techLeader.title")}</h1>
             <p className="text-muted-foreground">
-              Select a product category to manage folder structures and distribute versioned drawings.
+              {t("techLeader.selectCategoryPrompt")}
             </p>
           </div>
 
@@ -148,7 +146,7 @@ export default function TechLeaderWorkspace() {
                     <CardHeader className="pb-4 relative">
                       {isManaged && (
                         <Badge className="absolute top-4 right-4 bg-primary/20 text-primary hover:bg-primary/30 border-0 shadow-none pointer-events-none">
-                          Your Workspace
+                          {t("techLeader.yourWorkspace")}
                         </Badge>
                       )}
                       <div className={cn("w-12 h-12 rounded-lg mb-4 flex items-center justify-center", isManaged ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground")}>
@@ -156,12 +154,12 @@ export default function TechLeaderWorkspace() {
                       </div>
                       <CardTitle className="text-xl">{cat.name}</CardTitle>
                       <CardDescription className="text-sm mt-1">
-                        Owner: {cat.leaderUsername || "Unassigned"}
+                        {t("techLeader.owner")}: {cat.leaderUsername || t("techLeader.unassigned")}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <p className="text-sm text-muted-foreground">
-                        Manage folders, upload new files, and handle drawing distributions for this category.
+                        {t("techLeader.categoryDesc")}
                       </p>
                     </CardContent>
                   </Card>
@@ -183,7 +181,6 @@ export default function TechLeaderWorkspace() {
           setRollbackCtx={setRollbackCtx}
           setStopCtx={setStopCtx}
           setResumeCtx={setResumeCtx}
-          setViewCtx={setViewCtx}
         />
       )}
 
@@ -249,13 +246,6 @@ export default function TechLeaderWorkspace() {
         />
       )}
 
-      {viewCtx && (
-        <FileViewerModal
-          filePath={viewCtx.filePath}
-          fileName={viewCtx.fileName}
-          onClose={() => setViewCtx(null)}
-        />
-      )}
     </div>
   );
 }
@@ -271,7 +261,6 @@ function CategoryWorkspace({
   setRollbackCtx,
   setStopCtx,
   setResumeCtx,
-  setViewCtx,
 }: {
   category: CategoryDto;
   managed: boolean;
@@ -281,8 +270,8 @@ function CategoryWorkspace({
   setRollbackCtx: (ctx: any) => void;
   setStopCtx: (ctx: any) => void;
   setResumeCtx: (ctx: any) => void;
-  setViewCtx: (ctx: any) => void;
 }) {
+  const { t } = useLanguage();
   const [folders, setFolders] = useState<FolderTreeDto[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
 
@@ -329,12 +318,12 @@ function CategoryWorkspace({
         <div className="flex items-center gap-4">
           <Button variant="ghost" className="pl-0 hover:bg-transparent hover:text-primary transition-colors" onClick={onBack}>
             <ArrowLeft className="w-5 h-5 mr-2" />
-            Back to Categories
+            {t("techLeader.backToCategories")}
           </Button>
           <div className="h-6 w-px bg-border hidden sm:block" />
           <div className="flex items-center gap-2">
             <h2 className="text-2xl font-bold">{category.name}</h2>
-            {managed && <Badge variant="secondary" className="bg-primary/10 text-primary">Your Workspace</Badge>}
+            {managed && <Badge variant="secondary" className="bg-primary/10 text-primary">{t("techLeader.yourWorkspace")}</Badge>}
           </div>
         </div>
         <Button
@@ -344,7 +333,7 @@ function CategoryWorkspace({
           }}
         >
           <Plus className="w-4 h-4 mr-2" />
-          Create New Project
+          {t("techLeader.createProject")}
         </Button>
       </div>
 
@@ -355,13 +344,13 @@ function CategoryWorkspace({
           <div className="p-4 bg-muted/30 border-b flex flex-col gap-3 font-medium text-sm text-muted-foreground">
             <div className="flex items-center">
               <FolderClosed className="w-4 h-4 mr-2" />
-              Folder Structure
+              {t("techLeader.folderStructure")}
             </div>
             <div className="relative">
               <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
               <input
                 className="flex h-8 w-full rounded-md border border-input bg-background pl-8 pr-3 py-1 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-                placeholder="Filter folders..."
+                placeholder={t("techLeader.filterFolders")}
                 value={folderSearch}
                 onChange={(e) => setFolderSearch(e.target.value)}
               />
@@ -370,11 +359,11 @@ function CategoryWorkspace({
           <div className="flex-1 overflow-y-auto p-3 space-y-1">
             {folders.length === 0 ? (
               <div className="text-center p-6 text-sm text-muted-foreground italic">
-                No folders exist yet. Create a project to get started.
+                {t("techLeader.noFolders")}
               </div>
             ) : filteredFolders.length === 0 ? (
               <div className="text-center p-6 text-sm text-muted-foreground italic">
-                No folders found matching "{folderSearch}".
+                {t("techLeader.noFoldersFound")} "{folderSearch}".
               </div>
             ) : (
               filteredFolders.map((folder) => (
@@ -405,14 +394,13 @@ function CategoryWorkspace({
               setRollbackCtx={setRollbackCtx}
               setStopCtx={setStopCtx}
               setResumeCtx={setResumeCtx}
-              setViewCtx={setViewCtx}
               onRefresh={loadFolders}
             />
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8 text-center bg-muted/5">
               <FolderDot className="w-16 h-16 mb-4 opacity-20" />
-              <h3 className="text-lg font-medium text-foreground mb-1">No Folder Selected</h3>
-              <p className="text-sm">Select a folder from the sidebar to view its files.</p>
+              <h3 className="text-lg font-medium text-foreground mb-1">{t("techLeader.noFolderSelected")}</h3>
+              <p className="text-sm">{t("techLeader.selectFolderPrompt")}</p>
             </div>
           )}
         </div>
@@ -422,7 +410,7 @@ function CategoryWorkspace({
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Create New Project</DialogTitle>
+            <DialogTitle>{t("techLeader.createProject")}</DialogTitle>
             <DialogDescription>
               Create a new project (root folder) for {category.name}.
             </DialogDescription>
@@ -690,7 +678,6 @@ function FileViewerPane({
   setRollbackCtx,
   setStopCtx,
   setResumeCtx,
-  setViewCtx,
   onRefresh,
 }: {
   folder: FolderTreeDto;
@@ -701,9 +688,9 @@ function FileViewerPane({
   setRollbackCtx: any;
   setStopCtx: any;
   setResumeCtx: any;
-  setViewCtx: any;
   onRefresh: () => void;
 }) {
+  const { t } = useLanguage();
   const [files, setFiles] = useState<FolderFileDto[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -726,14 +713,14 @@ function FileViewerPane({
             {folder.name}
           </h3>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {files.length} {files.length === 1 ? "file" : "files"} in this folder
-            {folder.children && folder.children.length > 0 && ` • ${folder.children.length} subfolder${folder.children.length === 1 ? '' : 's'}`}
+            {files.length} {t("techLeader.filesInFolder")} 
+            {folder.children && folder.children.length > 0 && ` • ${folder.children.length} ${folder.children.length === 1 ? t('techLeader.subfolder') : t('techLeader.subfolders')}`}
           </p>
         </div>
         {folder.parentId !== null && (
-          <Button onClick={() => setUploadCtx({ folderId: folder.id, folderName: folder.name, productName })}>
-            <Upload className="w-4 h-4 mr-2" />
-            Upload File
+          <Button onClick={() => setUploadCtx({ folderId: folder.id, folderName: folder.name })} className="gap-2">
+            <UploadCloud className="w-4 h-4" />
+            {t("techLeader.uploadFile")}
           </Button>
         )}
       </div>
@@ -770,9 +757,13 @@ function FileViewerPane({
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          {(file.filePath || file.fileUrl) ? (
+                          {file.fileUrl ? (
                             <button
-                              onClick={() => setViewCtx({ filePath: file.filePath ?? null, fileName: file.fileName })}
+                              onClick={() => {
+                                if (!file.fileUrl) return;
+                                const url = API_BASE.replace(/\/$/, "") + file.fileUrl;
+                                window.open(url, "_blank");
+                              }}
                               className={cn("truncate font-semibold text-base hover:underline hover:text-primary transition-colors text-left", (isNew && file.isStopped) && "text-destructive line-through")}
                             >
                               {file.fileName}
@@ -783,11 +774,11 @@ function FileViewerPane({
                             </span>
                           )}
                           <Badge variant="secondary" className="px-2 font-mono">v{file.versionNumber}</Badge>
-                          {isNew && <Badge className="bg-emerald-500 hover:bg-emerald-600 border-none text-white shadow-sm animate-pulse">NEW</Badge>}
-                          {(isNew && file.isStopped) && <Badge variant="destructive" className="animate-flash shadow-sm">STOP</Badge>}
+                          {isNew && <Badge className="bg-emerald-500 hover:bg-emerald-600 border-none text-white shadow-sm animate-pulse">{t("techLeader.new")}</Badge>}
+                          {(isNew && file.isStopped) && <Badge variant="destructive" className="animate-flash shadow-sm">{t("techLeader.stop")}</Badge>}
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          Uploaded on {new Date(file.createdAt).toLocaleString()}
+                        <div className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
+                          {t("techLeader.uploadedOn")} {new Date(file.createdAt).toLocaleString()}
                         </div>
                       </div>
                     </div>
@@ -809,27 +800,29 @@ function FileViewerPane({
                             className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
                             onClick={() => setStopCtx({ fileId: file.fileId, fileName: file.fileName, sentToDepartments: file.sentToDepartments || [] })}
                           >
-                            <OctagonX className="w-4 h-4 mr-2" /> Stop
+                            <OctagonX className="w-4 h-4 mr-2" /> {t("techLeader.stop")}
                           </Button>
                         )
                       ) : null}
                       
                       {!isNew && !file.isStopped && (
-                        <Button
-                          variant="outline"
-                          disabled={file.isStopped}
-                          onClick={() => setRollbackCtx({ fileId: file.fileId, versionId: file.fileVersionId, fileName: file.fileName, versionNumber: file.versionNumber })}
-                        >
-                          Rollback
-                        </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-3 text-muted-foreground hover:text-foreground"
+                            disabled={file.isStopped}
+                            onClick={() => setRollbackCtx({ fileId: file.fileId, versionId: file.fileVersionId, fileName: file.fileName, versionNumber: file.versionNumber })}
+                          >
+                            {t("techLeader.rollback")}
+                          </Button>
                       )}
                     </div>
                   </div>
 
                   {/* Distribution Status */}
                   {!file.isStopped && file.sentToDepartments && file.sentToDepartments.length > 0 && (
-                    <div className="mt-4 pt-3 border-t flex items-center gap-2">
-                      <p className="text-xs font-medium text-muted-foreground">Distributed to:</p>
+                    <div className="mt-4 pt-4 border-t flex flex-wrap items-center gap-2">
+                      <p className="text-xs font-medium text-muted-foreground">{t("techLeader.distributedTo")}</p>
                       <div className="flex flex-wrap items-center gap-2">
                         {file.sentToDepartments.map((dept: string) => {
                           const isConfirmed = file.confirmedByDepartments?.includes(dept);

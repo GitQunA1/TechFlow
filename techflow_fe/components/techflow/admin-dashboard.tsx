@@ -31,6 +31,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   getAdminDashboardStats,
@@ -53,6 +55,7 @@ import type {
 import type { DepartmentDto, CategoryDto } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
 import { useSignalR } from "@/lib/use-signalr";
+import { useLanguage } from "@/lib/i18n-context";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -251,6 +254,7 @@ function SvgDonutChart({ data }: { data: { name: string; value: number }[] }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function DashboardTab({ refreshTrigger }: { refreshTrigger?: number }) {
+  const { t } = useLanguage();
   const [stats, setStats] = useState<DashboardStatsDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<AdminCategoryDto[]>([]);
@@ -293,10 +297,15 @@ function DashboardTab({ refreshTrigger }: { refreshTrigger?: number }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">System Overview</h2>
-          <p className="text-sm text-muted-foreground">Statistics for the newest version of files (NEW)</p>
+          <h1 className="text-3xl font-bold tracking-tight mb-2 flex items-center gap-2">
+            <div className="p-2 bg-primary/10 text-primary rounded-lg">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+            {t("header.adminTitle")}
+          </h1>
+          <p className="text-muted-foreground">{t("header.adminDesc")}</p>
         </div>
         <div className="flex items-center gap-2">
           <Layers className="w-4 h-4 text-muted-foreground" />
@@ -308,7 +317,7 @@ function DashboardTab({ refreshTrigger }: { refreshTrigger?: number }) {
               setCategoryId(val === 'all' ? 'all' : parseInt(val, 10));
             }}
           >
-            <option value="all">All Categories</option>
+            <option value="all">{t("dashboard.stats.allCategories")}</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
@@ -318,17 +327,17 @@ function DashboardTab({ refreshTrigger }: { refreshTrigger?: number }) {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard icon={<Layers className="size-5" />} label="Active Files" value={String(stats.totalActiveFiles)} hint="Non-stopped files in system" />
-        <KpiCard icon={<TrendingUp className="size-5" />} label="Confirmation Rate" value={`${stats.confirmationRate}%`} hint={`${stats.totalConfirmed} of ${stats.totalConfirmed + stats.totalPending + stats.totalOverdue} distributions`} accent="primary" />
-        <KpiCard icon={<CheckCircle2 className="size-5" />} label="Confirmed" value={String(stats.totalConfirmed)} hint="Acknowledged by departments" accent="success" />
-        <KpiCard icon={<AlertTriangle className="size-5" />} label="Overdue" value={String(stats.totalOverdue)} hint="Past deadline, not confirmed" accent={stats.totalOverdue > 0 ? "danger" : undefined} />
+        <KpiCard icon={<Layers className="size-5" />} label={t("dashboard.stats.activeFiles")} value={String(stats.totalActiveFiles)} hint={t("dashboard.stats.activeFilesDesc")} />
+        <KpiCard icon={<TrendingUp className="size-5" />} label={t("dashboard.stats.confirmationRate")} value={`${stats.confirmationRate}%`} hint={`${stats.totalConfirmed} ${t("dashboard.stats.confirmationRateDesc")} ${stats.totalConfirmed + stats.totalPending + stats.totalOverdue} ${t("dashboard.stats.distributions")}`} accent="primary" />
+        <KpiCard icon={<CheckCircle2 className="size-5" />} label={t("dashboard.stats.confirmed")} value={String(stats.totalConfirmed)} hint={t("dashboard.stats.confirmedDesc")} accent="success" />
+        <KpiCard icon={<AlertTriangle className="size-5" />} label={t("dashboard.stats.overdue")} value={String(stats.totalOverdue)} hint={t("dashboard.stats.overdueDesc")} accent={stats.totalOverdue > 0 ? "danger" : undefined} />
       </div>
 
       {/* Pie Chart */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Distribution Status Breakdown</CardTitle>
-          <CardDescription>Proportion of confirmed, pending, and overdue distributions across all departments.</CardDescription>
+          <CardTitle className="text-base">{t("dashboard.stats.statusBreakdown")}</CardTitle>
+          <CardDescription>{t("dashboard.stats.statusBreakdownDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col md:flex-row items-center gap-8">
           <SvgDonutChart data={pieData} />
@@ -359,6 +368,7 @@ function DashboardTab({ refreshTrigger }: { refreshTrigger?: number }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function UsersTab({ refreshTrigger, onDataChanged }: { refreshTrigger?: number, onDataChanged?: () => void }) {
+  const { t } = useLanguage();
   const [users, setUsers] = useState<AdminUserDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [departments, setDepartments] = useState<DepartmentDto[]>([]);
@@ -505,16 +515,16 @@ function UsersTab({ refreshTrigger, onDataChanged }: { refreshTrigger?: number, 
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-lg font-semibold">User Accounts</h2>
-          <p className="text-sm text-muted-foreground">{users.length} user{users.length !== 1 ? "s" : ""} registered</p>
+          <h2 className="text-lg font-semibold">{t("dashboard.userAccounts")}</h2>
+          <p className="text-sm text-muted-foreground">{users.length} {t("dashboard.usersRegistered")}</p>
         </div>
         <Button onClick={() => {
           setCreateForm({ username: "", password: "", role: "Production", categoryId: "", departmentId: "" });
           setCreateOpen(true);
-        }}>
-          <Plus className="w-4 h-4 mr-2" /> Create User
+        }} className="gap-2">
+          <Plus className="w-4 h-4" /> {t("dashboard.createUser")}
         </Button>
       </div>
 
@@ -523,14 +533,14 @@ function UsersTab({ refreshTrigger, onDataChanged }: { refreshTrigger?: number, 
           <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading...
         </div>
       ) : (
-        <Card>
+        <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Username</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="hidden md:table-cell">Category / Dept</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className="w-[300px]">{t("common.username")}</TableHead>
+                <TableHead>{t("dashboard.users.role")}</TableHead>
+                <TableHead>{t("dashboard.categoryDept")}</TableHead>
+                <TableHead className="text-right">{t("dashboard.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -538,7 +548,7 @@ function UsersTab({ refreshTrigger, onDataChanged }: { refreshTrigger?: number, 
                 <TableRow key={u.id}>
                   <TableCell className="font-medium">{u.username}</TableCell>
                   <TableCell><RoleBadge role={u.role} /></TableCell>
-                  <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
+                  <TableCell className="text-sm text-muted-foreground">
                     {u.categoryName ? `📁 ${u.categoryName}` : u.departmentName ? `🏭 ${u.departmentName}` : "—"}
                   </TableCell>
                   <TableCell className="text-right">
@@ -555,7 +565,7 @@ function UsersTab({ refreshTrigger, onDataChanged }: { refreshTrigger?: number, 
               ))}
             </TableBody>
           </Table>
-        </Card>
+        </div>
       )}
 
       {/* Create Modal */}
@@ -602,6 +612,7 @@ function UsersTab({ refreshTrigger, onDataChanged }: { refreshTrigger?: number, 
 // ─────────────────────────────────────────────────────────────────────────────
 
 function CategoriesTab({ refreshTrigger, onDataChanged }: { refreshTrigger?: number, onDataChanged?: () => void }) {
+  const { t } = useLanguage();
   const [categories, setCategories] = useState<AdminCategoryDto[]>([]);
   const [allUsers, setAllUsers] = useState<AdminUserDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -693,13 +704,13 @@ function CategoriesTab({ refreshTrigger, onDataChanged }: { refreshTrigger?: num
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-lg font-semibold">Product Categories</h2>
-          <p className="text-sm text-muted-foreground">{categories.length} categor{categories.length !== 1 ? "ies" : "y"} registered</p>
+          <h2 className="text-lg font-semibold">{t("dashboard.productCategories")}</h2>
+          <p className="text-sm text-muted-foreground">{categories.length} {t("dashboard.categoriesRegistered")}</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" /> New Category
+        <Button onClick={() => setCreateOpen(true)} className="gap-2">
+          <Plus className="w-4 h-4" /> {t("dashboard.newCategory")}
         </Button>
       </div>
 
@@ -708,13 +719,13 @@ function CategoriesTab({ refreshTrigger, onDataChanged }: { refreshTrigger?: num
           <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading...
         </div>
       ) : (
-        <Card>
+        <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Tech Leader</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead>{t("dashboard.name")}</TableHead>
+                <TableHead>{t("dashboard.techLeader")}</TableHead>
+                <TableHead className="text-right">{t("dashboard.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -745,7 +756,7 @@ function CategoriesTab({ refreshTrigger, onDataChanged }: { refreshTrigger?: num
               ))}
             </TableBody>
           </Table>
-        </Card>
+        </div>
       )}
 
       {/* Create Modal */}
@@ -807,13 +818,14 @@ function CategoriesTab({ refreshTrigger, onDataChanged }: { refreshTrigger?: num
 // ─────────────────────────────────────────────────────────────────────────────
 
 function HistoryTab({ refreshTrigger }: { refreshTrigger?: number }) {
+  const { t } = useLanguage();
   const [history, setHistory] = useState<HistoryDto[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [folderFilter, setFolderFilter] = useState("");
-  const [departmentFilter, setDepartmentFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchCategory, setSearchCategory] = useState("");
+  const [searchFolder, setSearchFolder] = useState("");
+  const [searchDepartment, setSearchDepartment] = useState("");
 
   useEffect(() => {
     fetchHistory();
@@ -832,70 +844,76 @@ function HistoryTab({ refreshTrigger }: { refreshTrigger?: number }) {
   };
 
   const filteredHistory = history.filter((h) => {
-    const matchStatus = statusFilter === "All" || h.status === statusFilter;
-    const matchCat = categoryFilter === "" || h.categoryName.toLowerCase().includes(categoryFilter.toLowerCase());
-    const matchFolder = folderFilter === "" || h.folderName.toLowerCase().includes(folderFilter.toLowerCase());
-    const matchDept = departmentFilter === "" || h.departmentName.toLowerCase().includes(departmentFilter.toLowerCase());
+    const matchStatus = statusFilter === "all" || h.status.toLowerCase() === statusFilter;
+    const matchCat = searchCategory === "" || h.categoryName.toLowerCase().includes(searchCategory.toLowerCase());
+    const matchFolder = searchFolder === "" || h.folderName.toLowerCase().includes(searchFolder.toLowerCase());
+    const matchDept = searchDepartment === "" || h.departmentName.toLowerCase().includes(searchDepartment.toLowerCase());
     return matchStatus && matchCat && matchFolder && matchDept;
   });
 
   return (
-    <Card className="border-0 shadow-sm ring-1 ring-border/50">
-      <CardHeader className="bg-muted/30 border-b pb-4">
-        <CardTitle className="text-xl flex items-center gap-2">
+    <div className="space-y-4">
+      <div className="mb-6">
+        <h2 className="text-lg font-semibold flex items-center gap-2">
           <History className="w-5 h-5 text-primary" />
-          Global Action History
-        </CardTitle>
-        <CardDescription>Comprehensive log of file uploads and departmental confirmations.</CardDescription>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="p-4 border-b bg-muted/10 flex flex-col md:flex-row gap-4 items-center">
-          <div className="relative w-full md:w-48">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <input
-              className="flex h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-              placeholder="Search category..."
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-            />
-          </div>
-          <div className="relative w-full md:w-48">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <input
-              className="flex h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-              placeholder="Search folder/package..."
-              value={folderFilter}
-              onChange={(e) => setFolderFilter(e.target.value)}
-            />
-          </div>
-          <div className="relative w-full md:w-48">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <input
-              className="flex h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-              placeholder="Search department..."
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-            />
-          </div>
-          <select 
-            className="flex h-9 w-full md:w-[180px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="All">All Statuses</option>
-            <option value="Confirmed">Confirmed</option>
-            <option value="Pending">Pending</option>
-            <option value="Overdue">Overdue</option>
-          </select>
+          {t("dashboard.history.title")}
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          {t("dashboard.history.desc")}
+        </p>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder={t("common.searchCategory")}
+            value={searchCategory}
+            onChange={(e) => setSearchCategory(e.target.value)}
+            className="pl-9"
+          />
         </div>
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder={t("common.searchFolder")}
+            value={searchFolder}
+            onChange={(e) => setSearchFolder(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder={t("common.searchDepartment")}
+            value={searchDepartment}
+            onChange={(e) => setSearchDepartment(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <div className="w-full md:w-48">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder={t("common.allStatuses")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("common.allStatuses")}</SelectItem>
+              <SelectItem value="pending">{t("common.pending")}</SelectItem>
+              <SelectItem value="confirmed">{t("common.confirmed")}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent bg-muted/50">
-              <TableHead>Time</TableHead>
-              <TableHead>File</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Department</TableHead>
-              <TableHead>Uploader</TableHead>
+            <TableRow className="bg-muted/50 hover:bg-muted/50">
+              <TableHead className="w-[180px]">{t("common.time")}</TableHead>
+              <TableHead>{t("common.file")}</TableHead>
+              <TableHead className="w-[120px]">{t("common.status")}</TableHead>
+              <TableHead className="w-[150px]">{t("common.department")}</TableHead>
+              <TableHead className="w-[150px]">{t("common.uploader")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -968,8 +986,8 @@ function HistoryTab({ refreshTrigger }: { refreshTrigger?: number }) {
             )}
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -979,6 +997,7 @@ function HistoryTab({ refreshTrigger }: { refreshTrigger?: number }) {
 
 export default function AdminDashboard() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { on } = useSignalR({
     role: user?.role === "Admin" ? "Admin" : undefined,
   });
@@ -1024,16 +1043,16 @@ export default function AdminDashboard() {
       <Tabs defaultValue="dashboard">
         <TabsList className="w-full md:w-auto">
           <TabsTrigger value="dashboard">
-            <LayoutDashboard className="w-4 h-4 mr-1.5" /> Dashboard
+            <LayoutDashboard className="w-4 h-4 mr-1.5" /> {t("dashboard.title")}
           </TabsTrigger>
           <TabsTrigger value="history">
-            <History className="w-4 h-4 mr-1.5" /> History
+            <History className="w-4 h-4 mr-1.5" /> {t("common.history")}
           </TabsTrigger>
           <TabsTrigger value="users">
-            <Users className="w-4 h-4 mr-1.5" /> Users
+            <Users className="w-4 h-4 mr-1.5" /> {t("dashboard.users")}
           </TabsTrigger>
           <TabsTrigger value="categories">
-            <FolderKanban className="w-4 h-4 mr-1.5" /> Categories
+            <FolderKanban className="w-4 h-4 mr-1.5" /> {t("dashboard.categories")}
           </TabsTrigger>
         </TabsList>
 

@@ -21,6 +21,7 @@ import {
 } from "@/lib/api";
 import { toast } from "sonner";
 import { useSignalR } from "@/lib/use-signalr";
+import { useLanguage } from "@/lib/i18n-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,10 +33,10 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
-import { FileViewerModal } from "./file-viewer-modal";
 
 export default function ProductionWorkspace() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [files, setFiles] = useState<PendingFileDto[]>([]);
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [departmentName, setDepartmentName] = useState("");
@@ -170,7 +171,7 @@ export default function ProductionWorkspace() {
         if (!fullPath.toLowerCase().includes(folderFilter.toLowerCase())) return false;
       }
       if (statusFilter === "confirmed" && f.status !== "Confirmed") return false;
-      if (statusFilter === "unconfirmed" && f.status === "Confirmed") return false;
+      if (statusFilter === "pending" && f.status === "Confirmed") return false;
       return true;
     });
   }, [files, folderFilter, statusFilter, categoryFilter]);
@@ -280,8 +281,9 @@ export default function ProductionWorkspace() {
     <div className="container mx-auto p-4 md:p-6 lg:p-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8">
           {/* Title Area */}
-          <div className="flex flex-col">
-            <h1 className="text-3xl font-bold tracking-tight">{departmentName || "Production Floor"}</h1>
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold tracking-tight mb-2">{t("production.title")}</h1>
+            <p className="text-muted-foreground">{departmentName || "Production Floor"}</p>
           </div>
 
         <DropdownMenu>
@@ -405,13 +407,13 @@ export default function ProductionWorkspace() {
       <div className="flex flex-col md:flex-row gap-4 mb-6 p-4 bg-card rounded-xl border shadow-sm items-center">
         <div className="flex items-center text-sm font-semibold text-muted-foreground whitespace-nowrap">
           <Filter className="w-4 h-4 mr-2" />
-          Filters:
+          {t("common.filters")}:
         </div>
         <div className="relative w-full md:w-64">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <input
             className="flex h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-            placeholder="Search category..."
+            placeholder={t("common.searchCategory")}
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
           />
@@ -420,24 +422,24 @@ export default function ProductionWorkspace() {
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <input
             className="flex h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-            placeholder="Search folder (parent/child)..."
+            placeholder={t("common.searchFolderParentChild")}
             value={folderFilter}
             onChange={(e) => setFolderFilter(e.target.value)}
           />
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline" }), "w-full md:w-[180px] justify-between")}>
-            Status: <span className="capitalize ml-2 font-semibold text-primary">{statusFilter}</span>
+            {t("common.status")}: <span className="capitalize ml-2 font-semibold text-primary">{statusFilter === "all" ? t("common.allStatuses") : t("common." + statusFilter.toLowerCase())}</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-[180px]">
             <DropdownMenuGroup>
-              <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+              <DropdownMenuLabel>{t("common.status")}</DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuRadioGroup value={statusFilter} onValueChange={(v: string) => setStatusFilter(v as any)}>
-              <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="unconfirmed">Unconfirmed</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="confirmed">Confirmed</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="all">{t("common.all")}</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="pending">{t("common.pending")}</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="confirmed">{t("common.confirmed")}</DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -458,7 +460,7 @@ export default function ProductionWorkspace() {
               {/* Category Header */}
               <div className="border-b pb-2 flex items-center justify-between">
                 <h2 className="text-2xl font-bold tracking-tight text-foreground">{category.name}</h2>
-                <Badge variant="secondary" className="text-sm">Owner: {category.leader || "Unassigned"}</Badge>
+                <Badge variant="secondary" className="text-sm">{t("techLeader.owner")}: {category.leader || t("techLeader.unassigned")}</Badge>
               </div>
 
               {/* Folders in this Category */}
@@ -507,8 +509,8 @@ export default function ProductionWorkspace() {
 // ── Workshop Card ───────────────────────────────────────────────────────────
 
 function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; isNew: boolean; onConfirm: () => void; id?: string }) {
+  const { t } = useLanguage();
   const [confirming, setConfirming] = useState(false);
-  const [viewerOpen, setViewerOpen] = useState(false);
   const [hasViewed, setHasViewed] = useState(false);
 
   const handleConfirmClick = async () => {
@@ -518,11 +520,11 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
   };
 
   const handleView = () => {
-    setViewerOpen(true);
-  };
-
-  const handleViewed = () => {
     setHasViewed(true);
+    if (file.fileUrl) {
+      const url = API_BASE.replace(/\/$/, "") + file.fileUrl;
+      window.open(url, "_blank");
+    }
   };
 
   const isConfirmed = file.status === "Confirmed";
@@ -531,11 +533,10 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
 
   if (showStop) {
     return (
-      <>
         <div id={id} className="relative flex flex-col rounded-xl border-2 border-[#E50014] bg-[#E50014] text-white shadow-lg overflow-hidden transition-all duration-300">
           <div className="p-6 flex flex-col items-center text-center space-y-4 flex-1 justify-center">
             <OctagonX className="w-12 h-12 text-white animate-pulse" />
-            <h2 className="text-xl font-black tracking-tight">STOP PRODUCTION IMMEDIATELY</h2>
+            <h2 className="text-xl font-black tracking-tight">{t("production.stopProduction")}</h2>
             
             <div className="flex items-center justify-center gap-2 pt-2">
               <FileText className="w-4 h-4" />
@@ -554,25 +555,14 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
           <div className="p-5 pt-0 mt-auto">
             <Button variant="secondary" className="w-full font-bold h-11 bg-white text-[#E50014] hover:bg-gray-100" onClick={() => {}}>
               <Check className="w-4 h-4 mr-2" />
-              Acknowledge Stop
+              {t("production.acknowledgeStop")}
             </Button>
           </div>
         </div>
-        {viewerOpen && (
-          <FileViewerModal
-            filePath={file.filePath ?? null}
-            fileName={file.fileName}
-            onClose={() => setViewerOpen(false)}
-            requireViewForConfirm={!hasViewed}
-            onViewed={handleViewed}
-          />
-        )}
-      </>
     );
   }
 
   return (
-    <>
       <div
         id={id}
         className={cn(
@@ -596,7 +586,7 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
                 <FileText className="w-6 h-6" />
               </div>
               <div className="min-w-0 flex-1">
-                {(file.filePath) ? (
+                {(file.fileUrl) ? (
                   <div className="flex items-center gap-2 mb-1.5 min-w-0">
                     <button
                       onClick={handleView}
@@ -607,7 +597,7 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
                     </button>
                     {isNew && (
                       <Badge className="bg-emerald-500 text-white text-[10px] h-5 px-1.5 shrink-0 border-none shadow-sm hover:bg-emerald-600 animate-pulse">
-                        NEW
+                        {t("techLeader.new")}
                       </Badge>
                     )}
                   </div>
@@ -618,7 +608,7 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
                     </h3>
                     {isNew && (
                       <Badge className="bg-emerald-500 text-white text-[10px] h-5 px-1.5 shrink-0 border-none shadow-sm hover:bg-emerald-600 animate-pulse">
-                        NEW
+                        {t("techLeader.new")}
                       </Badge>
                     )}
                   </div>
@@ -632,30 +622,30 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
 
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div className="bg-muted/50 p-2 rounded-md">
-              <span className="text-xs text-muted-foreground block mb-0.5">Version</span>
+              <span className="text-xs text-muted-foreground block mb-0.5">{t("production.version")}</span>
               <span className="font-medium">v{file.versionNumber}</span>
             </div>
             <div className={cn("p-2 rounded-md", isOverdue ? "bg-amber-100/50" : "bg-muted/50")}>
               <span className="text-xs text-muted-foreground block mb-0.5">
-                {isConfirmed ? "Confirmed At" : "Distributed"}
+                {isConfirmed ? t("production.confirmedAt") : t("production.distributed")}
               </span>
               <span className={cn("font-medium", isOverdue && "text-amber-700")}>
                 {isConfirmed
                   ? file.confirmedAt
                     ? new Date(file.confirmedAt).toLocaleString()
-                    : "Confirmed"
+                    : t("common.confirmed")
                   : new Date(file.createdAt).toLocaleString()}
               </span>
             </div>
           </div>
 
           {(file.changeReason || file.note) && (
-            <div className="bg-muted/30 p-3 rounded-md text-sm border">
+            <div className="bg-orange-100/70 dark:bg-orange-900/20 p-3.5 rounded-xl text-sm border border-orange-200 dark:border-orange-800/50 shadow-sm">
               {file.changeReason && (
                 <>
                   <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5 mb-1">
                     <CircleAlert className="w-3 h-3" />
-                    Change Notes
+                    {t("production.changeNotes")}
                   </span>
                   <p className="text-muted-foreground italic leading-relaxed mb-3">"{file.changeReason}"</p>
                 </>
@@ -664,7 +654,7 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
                 <>
                   <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1.5 mb-1">
                     <FileText className="w-3 h-3" />
-                    Department Note
+                    {t("production.departmentNote")}
                   </span>
                   <p className="text-foreground font-medium leading-relaxed">{file.note}</p>
                 </>
@@ -680,7 +670,7 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
               onClick={(e) => e.preventDefault()}
             >
               <CheckCircle2 className="w-4 h-4 mr-2" />
-              Confirmed
+              {t("common.confirmed")}
             </Button>
           ) : !isNew ? (
             <Button 
@@ -688,7 +678,7 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
               disabled
             >
               <FileText className="w-4 h-4 mr-2 opacity-50" />
-              Outdated - Cannot Confirm
+              {t("production.outdated")}
             </Button>
           ) : (
             <Button 
@@ -697,8 +687,8 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
                 isOverdue && hasViewed && "bg-amber-600 hover:bg-amber-700 text-white",
                 !hasViewed && "bg-[#129c92] text-white opacity-95 disabled:opacity-95"
               )}
-              onClick={handleConfirmClick} 
-              disabled={confirming || !hasViewed}
+              onClick={hasViewed ? handleConfirmClick : handleView} 
+              disabled={confirming}
               variant={hasViewed ? "default" : "default"}
             >
               {confirming ? (
@@ -710,16 +700,5 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
           )}
         </div>
       </div>
-
-      {viewerOpen && (
-        <FileViewerModal
-          filePath={file.filePath ?? null}
-          fileName={file.fileName}
-          onClose={() => setViewerOpen(false)}
-          requireViewForConfirm={!hasViewed}
-          onViewed={handleViewed}
-        />
-      )}
-    </>
   );
 }

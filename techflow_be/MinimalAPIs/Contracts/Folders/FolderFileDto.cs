@@ -8,7 +8,6 @@ public record FolderFileDto(
     bool IsStopped,
     int VersionNumber,
     string? FileUrl,
-    string? FilePath,
     string? ChangeReason,
     DateTime CreatedAt,
     IReadOnlyList<string> SentToDepartments,

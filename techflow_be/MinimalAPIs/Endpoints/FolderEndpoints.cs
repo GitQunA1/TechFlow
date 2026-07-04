@@ -104,7 +104,6 @@ public static class FolderEndpoints
                     file.IsStopped,
                     version.VersionNumber,
                     version.FileUrl,
-                    version.FilePath,
                     version.ChangeReason,
                     version.CreatedAt,
                     sentTo,

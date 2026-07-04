@@ -21,7 +21,7 @@ public static class FileEndpoints
         return ext is ".png" or ".pdf" or ".dwg";
     }
 
-    private const string BasePath = @"T:\Technical Drawing\";
+    private const string BasePath = @"D:\Technical Drawing\";
 
     public static IEndpointRouteBuilder MapFileEndpoints(this IEndpointRouteBuilder app)
     {
@@ -30,7 +30,6 @@ public static class FileEndpoints
             .RequireAuthorization();
 
         // ── POST /api/files/upload-by-path ─────────────────────────────────
-        // Nhận JSON body, KHÔNG nhận file vật lý, KHÔNG dùng Cloudinary.
         group.MapPost("/upload-by-path", async (
             [FromBody] UploadFileByPathRequest request,
             ClaimsPrincipal user,

@@ -16,6 +16,7 @@ import {
   confirmDistribution,
   getDepartments,
   NotificationDto,
+  PendingFileDto,
   API_BASE,
 } from "@/lib/api";
 import { toast } from "sonner";
@@ -559,7 +560,7 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
         </div>
         {viewerOpen && (
           <FileViewerModal
-            fileUrl={file.fileUrl.startsWith("http") ? file.fileUrl : `${API_BASE}${file.fileUrl}`}
+            filePath={file.filePath ?? null}
             fileName={file.fileName}
             onClose={() => setViewerOpen(false)}
             requireViewForConfirm={!hasViewed}
@@ -595,7 +596,7 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
                 <FileText className="w-6 h-6" />
               </div>
               <div className="min-w-0 flex-1">
-                {file.fileUrl ? (
+                {(file.filePath) ? (
                   <div className="flex items-center gap-2 mb-1.5 min-w-0">
                     <button
                       onClick={handleView}
@@ -712,7 +713,7 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
 
       {viewerOpen && (
         <FileViewerModal
-          fileUrl={file.fileUrl.startsWith("http") ? file.fileUrl : `${API_BASE}${file.fileUrl}`}
+          filePath={file.filePath ?? null}
           fileName={file.fileName}
           onClose={() => setViewerOpen(false)}
           requireViewForConfirm={!hasViewed}

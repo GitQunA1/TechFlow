@@ -3,7 +3,6 @@ using MinimalAPIs.Data;
 using MinimalAPIs.Endpoints;
 using MinimalAPIs.Hubs;
 using MinimalAPIs.Services;
-using CloudinaryDotNet;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -58,13 +57,7 @@ builder.Services.AddSignalR();
 builder.Services.AddScoped<NotificationBroadcaster>();
 builder.Services.AddHostedService<DeadlineCheckWorker>();
 
-var cloudinarySection = builder.Configuration.GetSection("Cloudinary");
-Account cloudinaryAccount = new Account(
-    cloudinarySection["CloudName"],
-    cloudinarySection["ApiKey"],
-    cloudinarySection["ApiSecret"]);
-Cloudinary cloudinary = new Cloudinary(cloudinaryAccount);
-builder.Services.AddSingleton(cloudinary);
+
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

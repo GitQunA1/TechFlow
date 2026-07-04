@@ -68,6 +68,7 @@ export interface FolderFileDto {
   fileName: string;
   isStopped: boolean;
   versionNumber: number;
+  filePath: string | null;
   fileUrl: string | null;
   changeReason: string | null;
   createdAt: string; // ISO datetime
@@ -81,7 +82,7 @@ export interface UploadFileResponse {
   fileId: number;
   fileVersionId: number;
   versionNumber: number;
-  fileUrl: string;
+  filePath: string | null;
 }
 
 // ── Pending Files (Production workspace) ─────────────────────────────────────
@@ -97,7 +98,7 @@ export interface PendingFileDto {
   categoryName: string;
   categoryLeader: string | null;
   versionNumber: number;
-  fileUrl: string;
+  filePath: string | null;
   isStopped: boolean;
   changeReason: string | null;
   status: "Pending" | "Confirmed" | "Overdue";

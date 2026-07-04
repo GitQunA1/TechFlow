@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   Play,
+  FolderOpen,
   Upload,
-  X,
-  FileText,
   Loader2,
   AlertTriangle,
   CheckCircle2,
@@ -21,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { getDepartments, resumeFile, resumeFileWithNewFile, DepartmentDto } from "@/lib/api";
+import { getDepartments, resumeFile, resumeFileWithPath, DepartmentDto } from "@/lib/api";
 import { DepartmentNoteRequest } from "@/lib/types";
 import { toast } from "sonner";
 
@@ -52,19 +51,23 @@ export function ResumeModal({
   // Per-department notes: Record<deptId, { note, isAffected }>
   const [deptNotes, setDeptNotes] = useState<Record<number, DeptNoteState>>({});
 
-  // File upload (Case 2)
-  const [newFile, setNewFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // New file path (Case 2 – thay thế drag-drop)
+  const [newFileName, setNewFileName] = useState("");
+  const [fileError, setFileError] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
+
+  const VALID_EXTS = [".png", ".pdf", ".dwg"];
+  const validatePath = (p: string) => VALID_EXTS.some((ext) => p.toLowerCase().endsWith(ext));
+  const extractFileName = (p: string) => p.replace(/\\/g, "/").split("/").pop() || p;
 
   // Load & filter departments on open
   useEffect(() => {
     if (!open) {
       // Reset
       setTab("simple");
-      setNewFile(null);
+      setNewFileName("");
+      setFileError(null);
       setDeptNotes({});
       return;
     }
@@ -110,7 +113,7 @@ export function ResumeModal({
       isAffected: deptNotes[d.id]?.isAffected ?? true,
     }));
 
-  const isValid = tab === "simple" ? true : stoppedDepts.every((d) => deptNotes[d.id]?.note?.trim());
+  const isValid = tab === "simple" ? true : stoppedDepts.every((d) => deptNotes[d.id]?.note?.trim()) && !!newFileName && !fileError;
 
   // Case 1 submit
   const handleSimpleResume = async () => {
@@ -128,15 +131,15 @@ export function ResumeModal({
     }
   };
 
-  // Case 2 submit
+  // Case 2 submit – dùng đường dẫn nội bộ thay vì upload file
   const handleResumeWithFile = async () => {
-    if (!isValid || !newFile) return;
+    if (!isValid || !newFileName || fileError) return;
     setSubmitting(true);
     try {
-      const formData = new FormData();
-      formData.append("file", newFile);
-      formData.append("departmentNotesJson", JSON.stringify(buildDepartmentNotes()));
-      await resumeFileWithNewFile(fileId, formData);
+      await resumeFileWithPath(fileId, {
+        fileName: newFileName,
+        departmentNotes: buildDepartmentNotes(),
+      });
       toast.success("Resumed with new file version!", {
         description: "A new version has been created and all departments must re-confirm.",
       });
@@ -148,19 +151,14 @@ export function ResumeModal({
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
-  const handleDragLeave = () => setIsDragging(false);
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const dropped = e.dataTransfer.files[0];
-    if (dropped) {
-      const ext = dropped.name.toLowerCase().split(".").pop();
-      if (["pdf", "png", "dwg"].includes(ext || "")) {
-        setNewFile(dropped);
-      } else {
-        toast.error("Invalid file type. Please upload a PDF, PNG, or DWG.");
-      }
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNewFileName(file.name);
+      setFileError(validatePath(file.name) ? null : "Chỉ cho phép file .png, .pdf hoặc .dwg.");
+    } else {
+      setNewFileName("");
+      setFileError(null);
     }
   };
 
@@ -216,57 +214,34 @@ export function ResumeModal({
           {tab === "with-file" && (
             <div>
               <label className="text-sm font-medium mb-2 block">
-                New File <span className="text-destructive">*</span>
+                Chọn bản vẽ mới <span className="text-destructive">*</span>
               </label>
-              <div
-                className={cn(
-                  "relative border-2 border-dashed rounded-xl p-6 transition-all duration-200 ease-in-out cursor-pointer",
-                  isDragging ? "border-primary bg-primary/5 scale-[1.01]" : "border-muted-foreground/25 hover:border-primary/50",
-                  newFile && "border-primary/50 bg-primary/5"
-                )}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => !newFile && fileInputRef.current?.click()}
-              >
+              <div className={cn(
+                "border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center transition-colors relative",
+                fileError ? "border-destructive/50 bg-destructive/5" : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50"
+              )}>
                 <input
                   type="file"
-                  ref={fileInputRef}
-                  accept=".pdf,.png,.dwg"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) setNewFile(f);
-                  }}
+                  onChange={handleFileChange}
+                  accept=".png,.pdf,.dwg"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
-                {!newFile ? (
-                  <div className="text-center">
-                    <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm font-medium">Drag & Drop or click to select</p>
-                    <p className="text-xs text-muted-foreground mt-1">Supports PDF, PNG, DWG</p>
+                <Upload className="w-8 h-8 text-muted-foreground mb-3" />
+                {newFileName ? (
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{newFileName}</p>
+                    <p className="text-xs text-emerald-600 mt-1">Đã chọn file</p>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center shrink-0">
-                        <FileText className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{newFile.name}</p>
-                        <p className="text-xs text-muted-foreground">{(newFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-muted-foreground hover:text-destructive"
-                      onClick={(e) => { e.stopPropagation(); setNewFile(null); }}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Click để chọn file mới</p>
+                    <p className="text-xs text-muted-foreground mt-1">Hỗ trợ .png, .pdf, .dwg (Chỉ lưu tên file)</p>
                   </div>
                 )}
               </div>
+              {fileError && (
+                <p className="text-xs text-destructive mt-2">⚠ {fileError}</p>
+              )}
 
               {/* Info banner for Case 2 */}
               <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-900/10 dark:border-amber-800 mt-3">
@@ -388,13 +363,13 @@ export function ResumeModal({
             ) : (
               <Button
                 className="min-w-[160px]"
-                disabled={!isValid || !newFile || submitting}
+                disabled={!isValid || !newFileName || !!fileError || submitting}
                 onClick={handleResumeWithFile}
               >
                 {submitting ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading...</>
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Đang lưu...</>
                 ) : (
-                  <><Upload className="w-4 h-4 mr-2" /> Upload & Resume</>
+                  <><FolderOpen className="w-4 h-4 mr-2" /> Lưu & Resume</>
                 )}
               </Button>
             )}

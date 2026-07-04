@@ -67,7 +67,7 @@ public static class WorkspaceEndpoints
                 x.FileVersion.File.Folder.Category.Name,
                 x.FileVersion.File.Folder.Category.Leader?.Username,
                 x.FileVersion.VersionNumber,
-                x.FileVersion.FileUrl,
+                x.FileVersion.FilePath,    // FilePath thay cho FileUrl
                 x.FileVersion.File.IsStopped && (x.FileVersion.File.StoppedDepartmentIds != null && x.FileVersion.File.StoppedDepartmentIds.Contains(departmentId.Value)),
                 x.FileVersion.ChangeReason,
                 x.Status.ToString(),

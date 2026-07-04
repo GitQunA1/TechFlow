@@ -346,7 +346,7 @@ function DashboardTab({ refreshTrigger }: { refreshTrigger?: number }) {
 
 
       <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={load}>
+        <Button variant="outline" size="sm" onClick={() => load(categoryId)}>
           <RefreshCw className="w-4 h-4 mr-2" /> Refresh
         </Button>
       </div>

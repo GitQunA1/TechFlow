@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Upload, X, Loader2, FileText, CheckCircle2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { FolderOpen, Loader2, CheckCircle2, FileText } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -10,9 +10,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { getDepartments, uploadFile, DepartmentDto } from "@/lib/api";
+import { getDepartments, uploadFileByPath, DepartmentDto } from "@/lib/api";
 import { toast } from "sonner";
 
 interface UploadModalProps {
@@ -23,6 +22,22 @@ interface UploadModalProps {
   folderId: number;
 }
 
+const VALID_EXTENSIONS = [".png", ".pdf", ".dwg"];
+
+function validatePath(path: string): { valid: boolean; error?: string } {
+  if (!path.trim()) return { valid: false, error: "Đường dẫn không được để trống." };
+  const lower = path.toLowerCase();
+  const hasValidExt = VALID_EXTENSIONS.some((ext) => lower.endsWith(ext));
+  if (!hasValidExt) return { valid: false, error: "Chỉ cho phép file .png, .pdf hoặc .dwg." };
+  return { valid: true };
+}
+
+function extractFileName(filePath: string): string {
+  // Hỗ trợ cả Windows path (backslash) lẫn Unix path (slash)
+  const parts = filePath.replace(/\\/g, "/").split("/");
+  return parts[parts.length - 1] || filePath;
+}
+
 export function UploadModal({
   open,
   onOpenChange,
@@ -30,14 +45,13 @@ export function UploadModal({
   folderName,
   folderId,
 }: UploadModalProps) {
-  const [file, setFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const [fileName, setFileName] = useState("");
+  const [fileError, setFileError] = useState<string | null>(null);
   const [selectedDepts, setSelectedDepts] = useState<number[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [departments, setDepartments] = useState<DepartmentDto[]>([]);
   const [loadingDepts, setLoadingDepts] = useState(true);
-  const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // Load departments
   useEffect(() => {
@@ -48,38 +62,21 @@ export function UploadModal({
         .catch((err) => toast.error("Failed to load departments", { description: err.message }))
         .finally(() => setLoadingDepts(false));
     } else {
-      // Reset state on close
-      setFile(null);
+      setFileName("");
+      setFileError(null);
       setSelectedDepts([]);
     }
   }, [open]);
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const droppedFile = e.dataTransfer.files[0];
-      const ext = droppedFile.name.toLowerCase().split('.').pop();
-      if (['pdf', 'png', 'dwg'].includes(ext || '')) {
-        setFile(droppedFile);
-      } else {
-        toast.error("Invalid file type. Please upload a PDF, PNG, or DWG.");
-      }
-    }
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFileName(file.name);
+      const { valid, error } = validatePath(file.name);
+      setFileError(valid ? null : (error ?? null));
+    } else {
+      setFileName("");
+      setFileError(null);
     }
   };
 
@@ -90,36 +87,40 @@ export function UploadModal({
   };
 
   const handleSubmit = async () => {
-    if (!file || selectedDepts.length === 0) return;
+    const { valid, error } = validatePath(fileName);
+    if (!valid) { setFileError(error ?? "File không hợp lệ."); return; }
+    if (selectedDepts.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một phòng ban.");
+      return;
+    }
 
-    setUploading(true);
+    setSubmitting(true);
     try {
-      const formData = new FormData();
-      formData.append("folderId", folderId.toString());
-      formData.append("file", file);
-      
-      selectedDepts.forEach((id) => {
-        formData.append("departmentIds", id.toString());
+      await uploadFileByPath({
+        folderId,
+        fileName: fileName,
+        departmentIds: selectedDepts,
       });
-
-      await uploadFile(formData);
-      
-      toast.success("Upload successful!");
+      toast.success("Lưu bản vẽ thành công!", {
+        description: `${fileName} đã được phân phối đến ${selectedDepts.length} phòng ban.`,
+      });
       onOpenChange(false);
     } catch (err: any) {
-      toast.error("Upload failed", { description: err.message });
+      toast.error("Lưu thất bại", { description: err.message });
     } finally {
-      setUploading(false);
+      setSubmitting(false);
     }
   };
+
+  const isFileValid = fileName && !fileError;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0 overflow-hidden gap-0 border-none shadow-2xl">
         <DialogHeader className="p-6 pb-4 bg-muted/30 border-b shrink-0">
           <DialogTitle className="text-xl flex items-center gap-2">
-            <Upload className="w-5 h-5 text-primary" />
-            { "Upload New Drawing"}
+            <FolderOpen className="w-5 h-5 text-primary" />
+            Thêm Bản Vẽ Mới
           </DialogTitle>
           <DialogDescription className="text-base mt-2">
             {productName} <span className="text-muted-foreground mx-1">›</span>{" "}
@@ -128,65 +129,55 @@ export function UploadModal({
         </DialogHeader>
 
         <div className="p-6 space-y-6 bg-background overflow-y-auto flex-1">
-          {/* File Drop Zone */}
-          <div
-            className={cn(
-              "relative border-2 border-dashed rounded-xl p-8 transition-all duration-200 ease-in-out",
-              isDragging ? "border-primary bg-primary/5 scale-[1.02]" : "border-muted-foreground/25 hover:border-primary/50",
-              file && "border-primary/50 bg-primary/5"
-            )}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileSelect}
-              accept=".pdf,.png,.dwg"
-              className="hidden"
-            />
-
-            {!file ? (
-              <div className="text-center">
-                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                  <Upload className="w-8 h-8 text-muted-foreground" />
+          {/* File Input */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              Chọn bản vẽ <span className="text-destructive">*</span>
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Chọn file bản vẽ từ máy tính của bạn (hệ thống chỉ lưu tên file để trỏ đến mạng nội bộ).
+            </p>
+            <div className={cn(
+              "border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center text-center transition-colors relative",
+              fileError ? "border-destructive/50 bg-destructive/5" : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50"
+            )}>
+              <input
+                type="file"
+                onChange={handleFileChange}
+                accept=".png,.pdf,.dwg"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+              <FileText className="w-10 h-10 text-muted-foreground mb-4" />
+              {fileName ? (
+                <div>
+                  <p className="text-sm font-medium text-foreground">{fileName}</p>
+                  <p className="text-xs text-emerald-600 mt-1">Đã chọn file</p>
                 </div>
-                <h3 className="text-lg font-semibold mb-1">Drag & Drop PDF, PNG, DWG</h3>
-                <p className="text-sm text-muted-foreground mb-4">or click to browse from your computer</p>
-                <Button variant="secondary" onClick={() => fileInputRef.current?.click()}>
-                  Select File
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between bg-background p-4 rounded-lg border shadow-sm">
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center shrink-0">
-                    <FileText className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{file.name}</p>
-                    <p className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                  </div>
+              ) : (
+                <div>
+                  <p className="text-sm font-medium text-foreground">Click để chọn file</p>
+                  <p className="text-xs text-muted-foreground mt-1">Hỗ trợ .png, .pdf, .dwg</p>
                 </div>
-                <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-destructive" onClick={() => setFile(null)}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
+              )}
+            </div>
+            {fileError && (
+              <p className="text-xs text-destructive flex items-center gap-1 mt-2">
+                ⚠ {fileError}
+              </p>
             )}
           </div>
-
-
 
           {/* Department Selection */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-foreground">Distribute To <span className="text-destructive">*</span></label>
-              <span className="text-xs text-muted-foreground">Select at least one</span>
+              <label className="text-sm font-medium text-foreground">
+                Phân phối đến <span className="text-destructive">*</span>
+              </label>
+              <span className="text-xs text-muted-foreground">Chọn ít nhất một phòng ban</span>
             </div>
-            
+
             {loadingDepts ? (
-              <div className="text-sm text-muted-foreground">Loading departments...</div>
+              <div className="text-sm text-muted-foreground">Đang tải danh sách phòng ban...</div>
             ) : (
               <div className="grid grid-cols-2 gap-2">
                 {departments.map((dept) => {
@@ -217,18 +208,18 @@ export function UploadModal({
 
         {/* Footer */}
         <div className="p-6 pt-4 bg-muted/10 border-t shrink-0 flex justify-end gap-3">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={uploading}>
-            Cancel
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+            Hủy
           </Button>
-          <Button 
-            disabled={!file || selectedDepts.length === 0 || uploading}
+          <Button
+            disabled={!isFileValid || selectedDepts.length === 0 || submitting}
             onClick={handleSubmit}
-            className="min-w-[120px]"
+            className="min-w-[140px]"
           >
-            {uploading ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading...</>
+            {submitting ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Đang lưu...</>
             ) : (
-              "Upload & Distribute"
+              "Lưu & Phân Phối"
             )}
           </Button>
         </div>

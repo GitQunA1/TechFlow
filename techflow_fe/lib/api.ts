@@ -19,6 +19,21 @@ import type {
   DepartmentNoteRequest,
 } from "./types";
 
+export type {
+  LoginResponse,
+  CategoryDto,
+  DepartmentDto,
+  FolderTreeDto,
+  FolderFileDto,
+  CreateFolderRequest,
+  CreateFolderResponse,
+  UploadFileResponse,
+  PendingFileDto,
+  NotificationDto,
+  FileHistoryDto,
+  DepartmentNoteRequest,
+};
+
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://technical.vfr.net.vn:10114";
 
 // ── Token storage ─────────────────────────────────────────────────────────────
@@ -147,10 +162,16 @@ export async function deleteFolder(folderId: number): Promise<void> {
 }
 
 // ── Files ─────────────────────────────────────────────────────────────────────
-export async function uploadFile(formData: FormData): Promise<UploadFileResponse> {
-  return apiFetch<UploadFileResponse>("/api/files/upload", {
+
+/** Upload bản vẽ mới bằng đường dẫn nội bộ (không upload file vật lý) */
+export async function uploadFileByPath(request: {
+  folderId: number;
+  fileName: string;
+  departmentIds: number[];
+}): Promise<UploadFileResponse> {
+  return apiFetch<UploadFileResponse>("/api/files/upload-by-path", {
     method: "POST",
-    body: formData,
+    body: JSON.stringify(request),
   });
 }
 
@@ -171,13 +192,17 @@ export async function resumeFile(
   });
 }
 
-export async function resumeFileWithNewFile(
+/** Resume kèm bản vẽ mới – dùng đường dẫn nội bộ thay vì upload file */
+export async function resumeFileWithPath(
   fileId: number,
-  formData: FormData
+  request: {
+    fileName: string;
+    departmentNotes: DepartmentNoteRequest[];
+  }
 ): Promise<UploadFileResponse> {
-  return apiFetch<UploadFileResponse>(`/api/files/${fileId}/resume-with-file`, {
+  return apiFetch<UploadFileResponse>(`/api/files/${fileId}/resume-with-path`, {
     method: "POST",
-    body: formData,
+    body: JSON.stringify(request),
   });
 }
 

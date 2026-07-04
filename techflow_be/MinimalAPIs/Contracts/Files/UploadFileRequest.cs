@@ -1,14 +1,14 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace MinimalAPIs.Contracts.Files;
 
-public sealed class UploadFileRequest
+/// <summary>
+/// JSON body cho API POST /api/files/upload-by-path
+/// Thay thế hoàn toàn multipart/form-data + IFormFile cũ.
+/// </summary>
+public sealed class UploadFileByPathRequest
 {
-    [FromForm] public int? FileId { get; set; }
-    [FromForm] public int FolderId { get; set; }
-    [FromForm] public IFormFile? PdfFile { get; set; }
-    [FromForm] public string? ChangeReason { get; set; }
-    [FromForm] public List<int> DepartmentIds { get; set; } = new();
-    [FromForm] public int? RollbackFromVersionId { get; set; }
-    [FromForm] public DateTime? DeadlineTime { get; set; }
+    public int FolderId { get; set; }
+    /// <summary>Tên file kèm đuôi, ví dụ: banve_tang1.dwg</summary>
+    public string FileName { get; set; } = string.Empty;
+    /// <summary>Danh sách phòng ban nhận bản vẽ</summary>
+    public List<int> DepartmentIds { get; set; } = new();
 }

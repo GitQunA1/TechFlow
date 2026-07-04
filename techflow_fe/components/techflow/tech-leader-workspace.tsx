@@ -85,7 +85,7 @@ export default function TechLeaderWorkspace() {
   } | null>(null);
 
   const [viewCtx, setViewCtx] = useState<{
-    fileUrl: string;
+    filePath: string | null;
     fileName: string;
   } | null>(null);
 
@@ -251,7 +251,7 @@ export default function TechLeaderWorkspace() {
 
       {viewCtx && (
         <FileViewerModal
-          fileUrl={viewCtx.fileUrl.startsWith("http") ? viewCtx.fileUrl : `${API_BASE}${viewCtx.fileUrl}`}
+          filePath={viewCtx.filePath}
           fileName={viewCtx.fileName}
           onClose={() => setViewCtx(null)}
         />
@@ -571,7 +571,7 @@ function FolderTreeNode({
       {/* Subfolders */}
       {expanded && folder.children && folder.children.length > 0 && (
         <div className="mt-0.5 space-y-0.5">
-          {folder.children.map(child => (
+          {folder.children.map((child: FolderTreeDto) => (
             <FolderTreeNode
               key={child.id}
               folder={child}
@@ -770,9 +770,9 @@ function FileViewerPane({
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          {file.fileUrl ? (
+                          {(file.filePath || file.fileUrl) ? (
                             <button
-                              onClick={() => setViewCtx({ fileUrl: file.fileUrl!, fileName: file.fileName })}
+                              onClick={() => setViewCtx({ filePath: file.filePath ?? null, fileName: file.fileName })}
                               className={cn("truncate font-semibold text-base hover:underline hover:text-primary transition-colors text-left", (isNew && file.isStopped) && "text-destructive line-through")}
                             >
                               {file.fileName}
@@ -831,7 +831,7 @@ function FileViewerPane({
                     <div className="mt-4 pt-3 border-t flex items-center gap-2">
                       <p className="text-xs font-medium text-muted-foreground">Distributed to:</p>
                       <div className="flex flex-wrap items-center gap-2">
-                        {file.sentToDepartments.map(dept => {
+                        {file.sentToDepartments.map((dept: string) => {
                           const isConfirmed = file.confirmedByDepartments?.includes(dept);
                           return (
                             <Badge 

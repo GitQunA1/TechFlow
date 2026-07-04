@@ -11,7 +11,7 @@ public sealed record PendingFileDto(
     string CategoryName,
     string? CategoryLeader,
     int VersionNumber,
-    string FileUrl,
+    string? FilePath,
     bool IsStopped,
     string? ChangeReason,
     string Status,

@@ -9,12 +9,11 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Bước 0 - Dừng tất cả tiến trình PM2 trước khi checkout
+      - name: Bước 0 - Dừng tiến trình TechFlow trước khi checkout
         continue-on-error: true
         run: |
-          pm2 delete all
-          pm2 flush
-          pm2 save --force
+          pm2 delete techflow-backend
+          pm2 delete techflow-frontend
           timeout /t 3
         shell: cmd
 
@@ -42,7 +41,8 @@ jobs:
       - name: Bước 4.1 - Dọn dẹp tiến trình cũ
         continue-on-error: true
         run: |
-          pm2 delete all
+          pm2 delete techflow-backend
+          pm2 delete techflow-frontend
           pm2 flush
           pm2 save --force
           timeout /t 2

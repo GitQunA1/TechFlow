@@ -24,8 +24,8 @@ jobs:
         run: |
           copy /Y "C:\TechFlow_Secrets\.env" "%GITHUB_WORKSPACE%\techflow_fe\.env"
           pushd "%GITHUB_WORKSPACE%\techflow_fe"
-          npm install
-          npm run build
+          call npm install
+          call npm run build
           dir .next\BUILD_ID
           popd
         shell: cmd

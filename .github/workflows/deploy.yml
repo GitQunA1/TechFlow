@@ -14,10 +14,9 @@ jobs:
 
       - name: Bước 2 - Chuẩn bị biến môi trường và Build Frontend (Next.js)
         run: |
-          # 1. Copy file .env từ Desktop vào thư mục làm việc của Frontend TRƯỚC khi build
-          copy "C:\Users\Administrator\Desktop\TechFlow\techflow_fe\.env" "techflow_fe\.env"
+          # Copy file .env từ vùng dùng chung vào thư mục Frontend
+          copy "C:\TechFlow_Secrets\.env" "techflow_fe\.env"
           
-          # 2. Tiến hành cài đặt và Build
           cd techflow_fe
           npm install
           npm run build
@@ -28,8 +27,8 @@ jobs:
           dotnet restore
           dotnet publish -c Release -o out
           
-          # Copy file appsettings.json từ Desktop thẳng vào thư mục 'out' SAU khi build xong
-          copy "C:\Users\Administrator\Desktop\TechFlow\techflow_be\MinimalAPIs\appsettings.json" "out\appsettings.json"
+          # Copy file appsettings.json từ vùng dùng chung vào thư mục 'out'
+          copy "C:\TechFlow_Secrets\appsettings.json" "out\appsettings.json"
 
       - name: Bước 4 - Chạy website ngầm bằng PM2
         run: |

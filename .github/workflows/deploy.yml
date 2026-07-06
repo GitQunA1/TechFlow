@@ -30,11 +30,14 @@ jobs:
           # Copy file appsettings.json từ vùng dùng chung vào thư mục 'out'
           copy "C:\TechFlow_Secrets\appsettings.json" "out\appsettings.json"
 
-      - name: Bước 4 - Chạy website ngầm bằng PM2
+      - name: Bước 4.1 - Dọn dẹp tiến trình cũ (Bỏ qua nếu chưa tồn tại)
+        continue-on-error: true
         run: |
-          pm2 delete techflow-backend || true
-          pm2 delete techflow-frontend || true
-          
+          pm2 delete techflow-backend
+          pm2 delete techflow-frontend
+
+      - name: Bước 4.2 - Khởi động website ngầm bằng PM2
+        run: |
           # Bật lại Backend
           cd techflow_be/MinimalAPIs
           pm2 start dotnet --name "techflow-backend" -- out/MinimalAPIs.dll --urls="http://*:10114"
@@ -43,4 +46,5 @@ jobs:
           cd ../../techflow_fe
           pm2 start npm --name "techflow-frontend" -- run start -- -H 0.0.0.0 -p 10115
           
+          # Lưu trạng thái
           pm2 save

@@ -1,0 +1,45 @@
+name: Tự động Deploy TechFlow
+
+on:
+  push:
+    branches: [ "feat/uploadfile_sever" ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Bước 1 - Tải code mới nhất về Server
+        uses: actions/checkout@v4
+
+      - name: Bước 2 - Build Backend (.NET)
+        shell: bash
+        run: |
+          cd techflow_be
+          dotnet restore
+          dotnet publish -c Release -o out
+
+      - name: Bước 3 - Build Frontend (Next.js)
+        shell: bash
+        run: |
+          cd techflow_fe
+          npm install
+          npm run build
+
+      - name: Bước 4 - Chạy website ngầm bằng PM2
+        shell: bash
+        run: |
+          # Xóa tiến trình cũ nếu có (dùng || true để không báo lỗi ở lần chạy đầu tiên)
+          pm2 delete techflow-backend || true
+          pm2 delete techflow-frontend || true
+          
+          # Bật lại Backend
+          cd techflow_be
+          pm2 start "dotnet out/MinimalAPIs.dll" --name "techflow-backend"
+          
+          # Bật lại Frontend
+          cd ../techflow_fe
+          pm2 start npm --name "techflow-frontend" -- run start
+          
+          # Lưu trạng thái
+          pm2 save

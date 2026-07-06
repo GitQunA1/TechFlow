@@ -33,8 +33,10 @@ jobs:
       - name: Bước 4.1 - Dọn dẹp tiến trình cũ (Bỏ qua nếu chưa tồn tại)
         continue-on-error: true
         run: |
-          pm2 delete techflow-backend
-          pm2 delete techflow-frontend
+          pm2 delete all
+          pm2 flush
+          pm2 save --force
+          Start-Sleep -Seconds 2
 
       - name: Bước 4.2 - Khởi động website ngầm bằng PM2
         run: |
@@ -51,14 +53,12 @@ jobs:
 
       - name: Bước 5 - Kiểm tra tiến trình thực sự đang sống
         run: |
-          Start-Sleep -Seconds 5
+          timeout /t 5
           pm2 list
           pm2 describe techflow-frontend
           pm2 describe techflow-backend
-          # Kiểm tra port có đang listen thật không
           netstat -ano | findstr "10114"
           netstat -ano | findstr "10115"
-          # Gọi thử endpoint, nếu curl lỗi thì fail cả job
           curl.exe --fail http://localhost:10115
           curl.exe --fail http://localhost:10114
-        shell: pwsh
+        shell: cmd

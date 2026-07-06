@@ -14,23 +14,21 @@ jobs:
 
       - name: Bước 2 - Chuẩn bị biến môi trường và Build Frontend (Next.js)
         run: |
-          # Copy file .env từ vùng dùng chung vào thư mục Frontend
           copy "C:\TechFlow_Secrets\.env" "techflow_fe\.env"
-          
           cd techflow_fe
           npm install
           npm run build
+        shell: cmd
 
       - name: Bước 3 - Build Backend (.NET) và nạp cấu hình bí mật
         run: |
-          cd techflow_be/MinimalAPIs
+          cd techflow_be\MinimalAPIs
           dotnet restore
           dotnet publish -c Release -o out
-          
-          # Copy file appsettings.json từ vùng dùng chung vào thư mục 'out'
-          copy "C:\TechFlow_Secrets\appsettings.json" "out\appsettings.json"
+          copy /Y "C:\TechFlow_Secrets\appsettings.json" "techflow_be\MinimalAPIs\out\appsettings.json"
+        shell: cmd
 
-      - name: Bước 4.1 - Dọn dẹp tiến trình cũ (Bỏ qua nếu chưa tồn tại)
+      - name: Bước 4.1 - Dọn dẹp tiến trình cũ
         continue-on-error: true
         run: |
           pm2 delete all
@@ -41,26 +39,17 @@ jobs:
 
       - name: Bước 4.2 - Khởi động website ngầm bằng PM2
         run: |
-          # Bật lại Backend
-          cd techflow_be/MinimalAPIs
-          pm2 start dotnet --name "techflow-backend" --interpreter none -- out/MinimalAPIs.dll --urls="http://*:10114"
-          
-          # Bật lại Frontend
-          cd ../../techflow_fe
-          pm2 start npm --name "techflow-frontend" --interpreter none -- run start -- -H 0.0.0.0 -p 10115
-          
-          # Lưu trạng thái
+          pm2 start dotnet --name "techflow-backend" --cwd "techflow_be\MinimalAPIs\out" -- MinimalAPIs.dll --urls="http://*:10114"
+          pm2 start node --name "techflow-frontend" --cwd "techflow_fe" -- node_modules/next/dist/bin/next start -H 0.0.0.0 -p 10115
           pm2 save
         shell: cmd
 
       - name: Bước 5 - Kiểm tra tiến trình thực sự đang sống
         run: |
-          timeout /t 5
+          timeout /t 8
           pm2 list
-          pm2 describe techflow-frontend
-          pm2 describe techflow-backend
           netstat -ano | findstr "10114"
           netstat -ano | findstr "10115"
           curl.exe --fail http://localhost:10115
-          curl.exe --fail http://localhost:10114
+          curl.exe --fail http://localhost:10114/swagger/index.html
         shell: cmd

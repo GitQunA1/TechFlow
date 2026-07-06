@@ -41,8 +41,8 @@ jobs:
       - name: Bước 4.1 - Dọn dẹp tiến trình cũ
         continue-on-error: true
         run: |
-          pm2 delete techflow-backend
-          pm2 delete techflow-frontend
+          pm2 delete techflow-backend || echo "techflow-backend not found, skipping"
+          pm2 delete techflow-frontend || echo "techflow-frontend not found, skipping"
           pm2 flush
           pm2 save --force
           timeout /t 2

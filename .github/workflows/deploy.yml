@@ -46,9 +46,14 @@ jobs:
           timeout /t 2
         shell: cmd
 
-      - name: Bước 4.2 - Khởi động website ngầm bằng PM2
+      - name: Bước 4.2 - Khởi động Backend
         run: |
           pm2 start dotnet --name "techflow-backend" --cwd "%GITHUB_WORKSPACE%\techflow_be\MinimalAPIs\out" -- MinimalAPIs.dll --urls="http://*:10114"
+          pm2 list
+        shell: cmd
+
+      - name: Bước 4.3 - Khởi động Frontend
+        run: |
           pm2 start node --name "techflow-frontend" --cwd "%GITHUB_WORKSPACE%\techflow_fe" -- node_modules/next/dist/bin/next start -H 0.0.0.0 -p 10115
           pm2 save
           pm2 list

@@ -23,10 +23,11 @@ jobs:
 
       - name: Bước 2 - Chuẩn bị biến môi trường và Build Frontend (Next.js)
         run: |
-          copy "C:\TechFlow_Secrets\.env" "techflow_fe\.env"
-          cd techflow_fe
+          copy "C:\TechFlow_Secrets\.env" "%GITHUB_WORKSPACE%\techflow_fe\.env"
+          cd /d "%GITHUB_WORKSPACE%\techflow_fe"
           npm install
           npm run build
+          dir .next\BUILD_ID
         shell: cmd
 
       - name: Bước 3 - Build Backend (.NET) và nạp cấu hình bí mật

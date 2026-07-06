@@ -48,3 +48,17 @@ jobs:
           
           # Lưu trạng thái
           pm2 save
+
+      - name: Bước 5 - Kiểm tra tiến trình thực sự đang sống
+        run: |
+          Start-Sleep -Seconds 5
+          pm2 list
+          pm2 describe techflow-frontend
+          pm2 describe techflow-backend
+          # Kiểm tra port có đang listen thật không
+          netstat -ano | findstr "10114"
+          netstat -ano | findstr "10115"
+          # Gọi thử endpoint, nếu curl lỗi thì fail cả job
+          curl.exe --fail http://localhost:10115
+          curl.exe --fail http://localhost:10114
+        shell: pwsh

@@ -36,20 +36,22 @@ jobs:
           pm2 delete all
           pm2 flush
           pm2 save --force
-          Start-Sleep -Seconds 2
+          timeout /t 2
+        shell: cmd
 
       - name: Bước 4.2 - Khởi động website ngầm bằng PM2
         run: |
           # Bật lại Backend
           cd techflow_be/MinimalAPIs
-          pm2 start dotnet --name "techflow-backend" -- out/MinimalAPIs.dll --urls="http://*:10114"
+          pm2 start dotnet --name "techflow-backend" --interpreter none -- out/MinimalAPIs.dll --urls="http://*:10114"
           
           # Bật lại Frontend
           cd ../../techflow_fe
-          pm2 start npm --name "techflow-frontend" -- run start -- -H 0.0.0.0 -p 10115
+          pm2 start npm --name "techflow-frontend" --interpreter none -- run start -- -H 0.0.0.0 -p 10115
           
           # Lưu trạng thái
           pm2 save
+        shell: cmd
 
       - name: Bước 5 - Kiểm tra tiến trình thực sự đang sống
         run: |

@@ -34,7 +34,7 @@ jobs:
           cd techflow_be\MinimalAPIs
           dotnet restore
           dotnet publish -c Release -o out
-          copy /Y "C:\TechFlow_Secrets\appsettings.json" "techflow_be\MinimalAPIs\out\appsettings.json"
+          copy /Y "C:\TechFlow_Secrets\appsettings.json" "%CD%\out\appsettings.json"
         shell: cmd
 
       - name: Bước 4.1 - Dọn dẹp tiến trình cũ

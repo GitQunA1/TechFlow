@@ -31,13 +31,13 @@ jobs:
           pm2 delete techflow-backend
           pm2 delete techflow-frontend
           
-          # Bật lại Backend từ đúng thư mục MinimalAPIs
+          # Bật lại Backend và ÉP chạy đúng Port 10114
           cd techflow_be/MinimalAPIs
-          pm2 start "dotnet out/MinimalAPIs.dll" --name "techflow-backend"
+          pm2 start "dotnet out/MinimalAPIs.dll --urls=http://localhost:10114" --name "techflow-backend"
           
-          # Đi ngược ra ngoài và vào lại thư mục Frontend để bật
+          # Bật lại Frontend và ÉP chạy đúng Port 10115
           cd ../../techflow_fe
-          pm2 start npm --name "techflow-frontend" -- run start
+          pm2 start npm --name "techflow-frontend" -- run start -- -p 10115
           
           # Lưu trạng thái
           pm2 save

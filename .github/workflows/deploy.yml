@@ -33,18 +33,18 @@ jobs:
       - name: Bước 4.1 - Dọn dẹp tiến trình cũ (Bỏ qua nếu chưa tồn tại)
         continue-on-error: true
         run: |
-          C:\Users\Administrator\AppData\Roaming\npm\pm2.cmd delete techflow-backend
-          C:\Users\Administrator\AppData\Roaming\npm\pm2.cmd delete techflow-frontend
+          pm2 delete techflow-backend
+          pm2 delete techflow-frontend
 
       - name: Bước 4.2 - Khởi động website ngầm bằng PM2
         run: |
           # Bật lại Backend
           cd techflow_be/MinimalAPIs
-          C:\Users\Administrator\AppData\Roaming\npm\pm2.cmd start dotnet --name "techflow-backend" -- out/MinimalAPIs.dll --urls="http://*:10114"
+          pm2 start dotnet --name "techflow-backend" -- out/MinimalAPIs.dll --urls="http://*:10114"
           
           # Bật lại Frontend
           cd ../../techflow_fe
-          C:\Users\Administrator\AppData\Roaming\npm\pm2.cmd start npm --name "techflow-frontend" -- run start -- -H 0.0.0.0 -p 10115
+          pm2 start npm --name "techflow-frontend" -- run start -- -H 0.0.0.0 -p 10115
           
           # Lưu trạng thái
-          C:\Users\Administrator\AppData\Roaming\npm\pm2.cmd save
+          pm2 save

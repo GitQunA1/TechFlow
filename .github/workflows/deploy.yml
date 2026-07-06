@@ -13,32 +13,30 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Bước 2 - Build Backend (.NET)
-        shell: bash
         run: |
-          cd techflow_be
+          cd techflow_be/MinimalAPIs
           dotnet restore
           dotnet publish -c Release -o out
 
       - name: Bước 3 - Build Frontend (Next.js)
-        shell: bash
         run: |
           cd techflow_fe
           npm install
           npm run build
 
       - name: Bước 4 - Chạy website ngầm bằng PM2
-        shell: bash
+        continue-on-error: true
         run: |
-          # Xóa tiến trình cũ nếu có (dùng || true để không báo lỗi ở lần chạy đầu tiên)
-          pm2 delete techflow-backend || true
-          pm2 delete techflow-frontend || true
+          # Xóa tiến trình cũ (nếu có)
+          pm2 delete techflow-backend
+          pm2 delete techflow-frontend
           
-          # Bật lại Backend
-          cd techflow_be
+          # Bật lại Backend từ đúng thư mục MinimalAPIs
+          cd techflow_be/MinimalAPIs
           pm2 start "dotnet out/MinimalAPIs.dll" --name "techflow-backend"
           
-          # Bật lại Frontend
-          cd ../techflow_fe
+          # Đi ngược ra ngoài và vào lại thư mục Frontend để bật
+          cd ../../techflow_fe
           pm2 start npm --name "techflow-frontend" -- run start
           
           # Lưu trạng thái

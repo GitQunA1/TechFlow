@@ -51,11 +51,12 @@ jobs:
           pm2 start dotnet --name "techflow-backend" --cwd "%GITHUB_WORKSPACE%\techflow_be\MinimalAPIs\out" -- MinimalAPIs.dll --urls="http://*:10114"
           pm2 start node --name "techflow-frontend" --cwd "%GITHUB_WORKSPACE%\techflow_fe" -- node_modules/next/dist/bin/next start -H 0.0.0.0 -p 10115
           pm2 save
+          pm2 list
         shell: cmd
 
       - name: Bước 5 - Kiểm tra tiến trình thực sự đang sống
         run: |
-          timeout /t 8
+          ping -n 9 127.0.0.1 > nul
           pm2 list
           netstat -ano | findstr "10114"
           netstat -ano | findstr "10115"

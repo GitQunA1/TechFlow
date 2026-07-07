@@ -644,19 +644,19 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
               {file.changeReason && (
                 <>
                   <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5 mb-1">
-                    <CircleAlert className="w-3 h-3" />
+                    <CircleAlert className="w-3 h-3 shrink-0" />
                     {t("production.changeNotes")}
                   </span>
-                  <p className="text-muted-foreground italic leading-relaxed mb-3">"{file.changeReason}"</p>
+                  <p className="text-muted-foreground italic leading-relaxed mb-3 break-words whitespace-pre-wrap max-h-24 overflow-y-auto">"{file.changeReason}"</p>
                 </>
               )}
               {file.note && (
                 <>
                   <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1.5 mb-1">
-                    <FileText className="w-3 h-3" />
+                    <FileText className="w-3 h-3 shrink-0" />
                     {t("production.departmentNote")}
                   </span>
-                  <p className="text-foreground font-medium leading-relaxed">{file.note}</p>
+                  <p className="text-foreground font-medium leading-relaxed break-words whitespace-pre-wrap max-h-24 overflow-y-auto">{file.note}</p>
                 </>
               )}
             </div>

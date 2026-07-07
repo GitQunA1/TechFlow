@@ -101,11 +101,22 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+var webRootPath = app.Environment.WebRootPath;
+if (string.IsNullOrWhiteSpace(webRootPath))
+{
+    webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+}
+if (!Directory.Exists(webRootPath))
+{
+    Directory.CreateDirectory(webRootPath);
+}
+
 var provider = new FileExtensionContentTypeProvider();
 provider.Mappings[".dwg"] = "application/acad"; // Hoặc "image/vnd.dwg"
 
 app.UseStaticFiles(new StaticFileOptions
 {
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(webRootPath),
     ContentTypeProvider = provider,
     OnPrepareResponse = ctx =>
     {

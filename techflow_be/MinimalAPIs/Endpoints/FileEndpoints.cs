@@ -497,17 +497,23 @@ public static class FileEndpoints
         if (string.IsNullOrWhiteSpace(request.ChangeReason))
             return Results.BadRequest("ChangeReason is required for rollback.");
 
-        var departmentIdList = (request.DepartmentIds ?? Array.Empty<int>()).Distinct().ToList();
-        if (departmentIdList.Count == 0)
-            return Results.BadRequest("At least one departmentId is required.");
+        // Tự động lấy departments từ phiên bản mới nhất của file
+        var latestVersionId = await dbContext.FileVersions
+            .Where(x => x.FileId == fileId)
+            .OrderByDescending(x => x.VersionNumber)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
 
-        var validDepartmentIds = await dbContext.Departments
-            .Where(x => departmentIdList.Contains(x.Id))
-            .Select(x => x.Id)
-            .ToListAsync(cancellationToken);
+        var validDepartmentIds = latestVersionId.HasValue
+            ? await dbContext.Distributions
+                .Where(x => x.FileVersionId == latestVersionId.Value)
+                .Select(x => x.DepartmentId)
+                .Distinct()
+                .ToListAsync(cancellationToken)
+            : new List<int>();
 
-        if (validDepartmentIds.Count != departmentIdList.Count)
-            return Results.BadRequest("One or more departmentIds are invalid.");
+        if (validDepartmentIds.Count == 0)
+            return Results.BadRequest("No departments found for the current version of this file.");
 
         var nextVersionNumber = await dbContext.FileVersions
             .Where(x => x.FileId == fileId)

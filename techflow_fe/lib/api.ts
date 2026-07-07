@@ -202,7 +202,7 @@ export async function resumeFileWithFile(
 export async function rollbackVersion(
   fileId: number,
   versionId: number,
-  data: { changeReason: string; departmentIds: number[] }
+  data: { changeReason: string }
 ): Promise<UploadFileResponse> {
   return apiFetch<UploadFileResponse>(`/api/files/${fileId}/versions/${versionId}/rollback`, {
     method: "POST",

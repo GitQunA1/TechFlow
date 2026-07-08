@@ -22,13 +22,13 @@ interface UploadModalProps {
   folderId: number;
 }
 
-const VALID_EXTENSIONS = [".png", ".pdf", ".dwg"];
+const VALID_EXTENSIONS = [".png", ".jpg", ".jpeg", ".pdf", ".dwg"];
 
 function validatePath(path: string): { valid: boolean; error?: string } {
   if (!path.trim()) return { valid: false, error: "Đường dẫn không được để trống." };
   const lower = path.toLowerCase();
   const hasValidExt = VALID_EXTENSIONS.some((ext) => lower.endsWith(ext));
-  if (!hasValidExt) return { valid: false, error: "Chỉ cho phép file .png, .pdf hoặc .dwg." };
+  if (!hasValidExt) return { valid: false, error: "Chỉ cho phép file .png, .jpg, .jpeg, .pdf hoặc .dwg." };
   return { valid: true };
 }
 
@@ -153,7 +153,7 @@ export function UploadModal({
               <input
                 type="file"
                 onChange={handleFileChange}
-                accept=".png,.pdf,.dwg"
+                accept=".png,.jpg,.jpeg,.pdf,.dwg"
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
               <FileText className="w-10 h-10 text-muted-foreground mb-4" />
@@ -165,7 +165,7 @@ export function UploadModal({
               ) : (
                 <div>
                   <p className="text-sm font-medium text-foreground">Click để chọn file</p>
-                  <p className="text-xs text-muted-foreground mt-1">Hỗ trợ .png, .pdf, .dwg</p>
+                  <p className="text-xs text-muted-foreground mt-1">Hỗ trợ .png, .jpg, .jpeg, .pdf, .dwg</p>
                 </div>
               )}
             </div>

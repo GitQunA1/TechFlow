@@ -58,7 +58,7 @@ export function ResumeModal({
 
   const [submitting, setSubmitting] = useState(false);
 
-  const VALID_EXTS = [".png", ".pdf", ".dwg"];
+  const VALID_EXTS = [".png", ".jpg", ".jpeg", ".pdf", ".dwg"];
   const validatePath = (p: string) => VALID_EXTS.some((ext) => p.toLowerCase().endsWith(ext));
   const extractFileName = (p: string) => p.replace(/\\/g, "/").split("/").pop() || p;
 
@@ -223,14 +223,14 @@ export function ResumeModal({
                       setSelectedFile(file);
                       setNewFileName(file.name);
                       const isValid = validatePath(file.name);
-                      setFileError(isValid ? null : "Chỉ chấp nhận file .png, .pdf, .dwg");
+                      setFileError(isValid ? null : "Chỉ chấp nhận file .png, .jpg, .jpeg, .pdf, .dwg");
                     } else {
                       setSelectedFile(null);
                       setNewFileName("");
                       setFileError(null);
                     }
                   }}
-                  accept=".png,.pdf,.dwg"
+                  accept=".png,.jpg,.jpeg,.pdf,.dwg"
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
                 <Upload className="w-8 h-8 text-muted-foreground mb-3" />
@@ -242,7 +242,7 @@ export function ResumeModal({
                 ) : (
                   <div>
                     <p className="text-sm font-medium text-foreground">Click để chọn file mới</p>
-                    <p className="text-xs text-muted-foreground mt-1">Hỗ trợ .png, .pdf, .dwg (Chỉ lưu tên file)</p>
+                    <p className="text-xs text-muted-foreground mt-1">Hỗ trợ .png, .jpg, .jpeg, .pdf, .dwg (Chỉ lưu tên file)</p>
                   </div>
                 )}
               </div>

@@ -19,6 +19,8 @@ import {
   Upload,
   UploadCloud,
   Search,
+  Eye,
+  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +38,8 @@ import { UploadModal } from "./upload-modal";
 import { RollbackModal } from "./rollback-modal";
 import { StopModal } from "./stop-modal";
 import { ResumeModal } from "./resume-modal";
+import { DraftReviewModal } from "./draft-review-modal";
+import { RevisionRequestModal } from "./revision-request-modal";
 import { useAuth } from "@/lib/auth-context";
 import {
   getCategories,
@@ -44,9 +48,16 @@ import {
   createFolder,
   deleteFolder,
   stopFile,
+  getPendingDrafts,
+  getDepartments,
+  createRevisionRequest,
+  getStaffUsers,
   CategoryDto,
   FolderTreeDto,
   FolderFileDto,
+  DraftFileDto,
+  DepartmentDto,
+  StaffUserDto,
   API_BASE,
 } from "@/lib/api";
 import { toast } from "sonner";
@@ -84,8 +95,33 @@ export default function TechLeaderWorkspace() {
     fileId: number;
     fileName: string;
     sentToDepartments: string[];
+    uploadedByRole: string;
   } | null>(null);
 
+  // Draft approval state
+  const [pendingDrafts, setPendingDrafts] = useState<DraftFileDto[]>([]);
+  const [departments, setDepartments] = useState<DepartmentDto[]>([]);
+  const [staffUsers, setStaffUsers] = useState<StaffUserDto[]>([]);
+  const [reviewDraftCtx, setReviewDraftCtx] = useState<DraftFileDto | null>(null);
+  const [draftPanelOpen, setDraftPanelOpen] = useState(false);
+
+  // Revision request state
+  const [revisionCtx, setRevisionCtx] = useState<{ fileId: number; fileName: string } | null>(null);
+  const [revisionMessage, setRevisionMessage] = useState("");
+  const [revisionStaffId, setRevisionStaffId] = useState<number | null>(null);
+  const [sendingRevision, setSendingRevision] = useState(false);
+
+  const loadPendingDrafts = () => {
+    getPendingDrafts()
+      .then(setPendingDrafts)
+      .catch(console.error);
+  };
+
+  useEffect(() => {
+    loadPendingDrafts();
+    getDepartments().then(setDepartments).catch(console.error);
+    getStaffUsers().then(setStaffUsers).catch(console.error);
+  }, []);
 
   const { on } = useSignalR({
     role: user?.role === "Admin" ? "Admin" : undefined,
@@ -181,6 +217,8 @@ export default function TechLeaderWorkspace() {
           setRollbackCtx={setRollbackCtx}
           setStopCtx={setStopCtx}
           setResumeCtx={setResumeCtx}
+          pendingDrafts={pendingDrafts.filter(d => d.categoryId === selectedCategory.id)}
+          setReviewDraftCtx={setReviewDraftCtx}
         />
       )}
 
@@ -231,7 +269,21 @@ export default function TechLeaderWorkspace() {
         />
       )}
 
-      {resumeCtx && (
+      {resumeCtx && resumeCtx.uploadedByRole === "Staff" && (
+        <RevisionRequestModal
+          open={!!resumeCtx}
+          onOpenChange={(open) => {
+            if (!open) {
+              setResumeCtx(null);
+              setRefreshTrigger((p) => p + 1);
+            }
+          }}
+          fileId={resumeCtx.fileId}
+          fileName={resumeCtx.fileName}
+        />
+      )}
+
+      {resumeCtx && resumeCtx.uploadedByRole !== "Staff" && (
         <ResumeModal
           open={!!resumeCtx}
           onOpenChange={(open) => {
@@ -243,6 +295,20 @@ export default function TechLeaderWorkspace() {
           fileId={resumeCtx.fileId}
           fileName={resumeCtx.fileName}
           sentToDepartmentNames={resumeCtx.sentToDepartments}
+        />
+      )}
+
+      {reviewDraftCtx && (
+        <DraftReviewModal
+          open={!!reviewDraftCtx}
+          onOpenChange={(open) => !open && setReviewDraftCtx(null)}
+          draft={reviewDraftCtx}
+          departments={departments}
+          onReviewed={() => {
+            loadPendingDrafts();
+            setReviewDraftCtx(null);
+            setRefreshTrigger((prev) => prev + 1);
+          }}
         />
       )}
 
@@ -261,6 +327,8 @@ function CategoryWorkspace({
   setRollbackCtx,
   setStopCtx,
   setResumeCtx,
+  pendingDrafts,
+  setReviewDraftCtx,
 }: {
   category: CategoryDto;
   managed: boolean;
@@ -270,6 +338,8 @@ function CategoryWorkspace({
   setRollbackCtx: (ctx: any) => void;
   setStopCtx: (ctx: any) => void;
   setResumeCtx: (ctx: any) => void;
+  pendingDrafts: DraftFileDto[];
+  setReviewDraftCtx: (ctx: DraftFileDto) => void;
 }) {
   const { t } = useLanguage();
   const [folders, setFolders] = useState<FolderTreeDto[]>([]);
@@ -395,6 +465,8 @@ function CategoryWorkspace({
               setStopCtx={setStopCtx}
               setResumeCtx={setResumeCtx}
               onRefresh={loadFolders}
+              pendingDrafts={pendingDrafts.filter(d => d.folderId === selectedFolder.id)}
+              setReviewDraftCtx={setReviewDraftCtx}
             />
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8 text-center bg-muted/5">
@@ -679,6 +751,8 @@ function FileViewerPane({
   setStopCtx,
   setResumeCtx,
   onRefresh,
+  pendingDrafts,
+  setReviewDraftCtx,
 }: {
   folder: FolderTreeDto;
   categoryId: number;
@@ -689,6 +763,8 @@ function FileViewerPane({
   setStopCtx: any;
   setResumeCtx: any;
   onRefresh: () => void;
+  pendingDrafts: DraftFileDto[];
+  setReviewDraftCtx: (ctx: DraftFileDto) => void;
 }) {
   const { t } = useLanguage();
   const [files, setFiles] = useState<FolderFileDto[]>([]);
@@ -725,11 +801,60 @@ function FileViewerPane({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+        {/* Pending Drafts Section */}
+        {pendingDrafts.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-amber-600 dark:text-amber-500 uppercase tracking-wider flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              {t("leader.pendingDrafts")} ({pendingDrafts.length})
+            </h4>
+            {pendingDrafts.map((draft) => (
+              <div
+                key={draft.id}
+                className="group flex flex-col p-4 text-sm rounded-lg border bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-900/50 transition-all hover:shadow-sm"
+              >
+                <div className="flex items-start justify-between w-full gap-4">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-10 h-10 rounded-md flex items-center justify-center shrink-0 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="truncate font-semibold text-base text-amber-900 dark:text-amber-100">
+                          {draft.fileName}
+                        </span>
+                        <Badge variant="outline" className="border-amber-500 text-amber-600 dark:text-amber-400 gap-1 bg-amber-500/10">
+                          Draft
+                        </Badge>
+                      </div>
+                      <div className="text-sm text-muted-foreground flex items-center gap-1.5">
+                        Uploaded by <span className="font-medium text-foreground">{draft.uploadedBy}</span> on {new Date(draft.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      size="sm"
+                      className="h-8 gap-1.5"
+                      onClick={() => setReviewDraftCtx(draft)}
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      Review Draft
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Regular Files Section */}
         {loading ? (
-          <div className="h-full flex items-center justify-center text-muted-foreground">Loading files...</div>
+          <div className="flex-1 flex items-center justify-center text-muted-foreground min-h-[200px]">Loading files...</div>
         ) : files.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed rounded-xl p-12">
+          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed rounded-xl p-12 min-h-[200px]">
             <FileText className="w-12 h-12 mb-4 opacity-20" />
             <p>This folder is empty.</p>
             {folder.parentId !== null && (
@@ -740,6 +865,9 @@ function FileViewerPane({
           </div>
         ) : (
           <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              {t("techLeader.filesInFolder")} ({files.length})
+            </h4>
             {files.map((file) => {
               const isNew = new Date(file.createdAt).getTime() === maxCreatedAt && maxCreatedAt > 0;
               return (
@@ -790,7 +918,7 @@ function FileViewerPane({
                           <Button
                             variant="outline"
                             className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-200"
-                            onClick={() => setResumeCtx({ fileId: file.fileId, fileName: file.fileName, sentToDepartments: file.sentToDepartments || [] })}
+                            onClick={() => setResumeCtx({ fileId: file.fileId, fileName: file.fileName, sentToDepartments: file.sentToDepartments || [], uploadedByRole: file.uploadedByRole })}
                           >
                             <Play className="w-4 h-4 mr-2 fill-current" /> Resume
                           </Button>

@@ -543,12 +543,16 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
               <span className="font-semibold">{file.fileName} (v{file.versionNumber})</span>
             </div>
 
-            <div className="space-y-1 text-sm font-medium opacity-90 pt-2">
+            <div className="space-y-1.5 text-sm font-medium opacity-90 pt-2 w-full max-w-[90%] mx-auto text-left">
               {file.changeReason && (
-                <p>{file.categoryLeader || 'Tech Leader'}: {file.changeReason}</p>
+                <p className="bg-white/10 p-2.5 rounded-md whitespace-pre-wrap break-words max-h-24 overflow-y-auto shadow-inner text-xs leading-relaxed">
+                  <span className="font-bold">{file.categoryLeader || 'Tech Leader'}:</span> {file.changeReason}
+                </p>
               )}
               {file.note && (
-                <p>Note: {file.note}</p>
+                <p className="bg-white/10 p-2.5 rounded-md whitespace-pre-wrap break-words max-h-24 overflow-y-auto shadow-inner text-xs leading-relaxed">
+                  <span className="font-bold">Note:</span> {file.note}
+                </p>
               )}
             </div>
           </div>

@@ -20,6 +20,7 @@ interface UploadModalProps {
   productName: string;
   folderName: string;
   folderId: number;
+  onUploaded?: () => void;
 }
 
 const VALID_EXTENSIONS = [".png", ".jpg", ".jpeg", ".pdf", ".dwg"];
@@ -44,6 +45,7 @@ export function UploadModal({
   productName,
   folderName,
   folderId,
+  onUploaded,
 }: UploadModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState("");
@@ -113,6 +115,7 @@ export function UploadModal({
       toast.success("Lưu bản vẽ thành công!", {
         description: `${fileName} đã được phân phối đến ${selectedDepts.length} phòng ban.`,
       });
+      onUploaded?.();
       onOpenChange(false);
     } catch (err: any) {
       toast.error("Lưu thất bại", { description: err.message });

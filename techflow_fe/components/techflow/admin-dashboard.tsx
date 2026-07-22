@@ -61,7 +61,7 @@ import { useLanguage } from "@/lib/i18n-context";
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ROLE_OPTIONS = ["Admin", "TechLeader", "Production"];
+const ROLE_OPTIONS = ["Admin", "TechLeader", "Production", "Staff"];
 
 const PIE_COLORS = ["#22c55e", "#f59e0b", "#ef4444"];
 
@@ -70,12 +70,14 @@ function RoleBadge({ role }: { role: string }) {
     Admin: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
     TechLeader: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
     Production: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+    Staff: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
   };
   return (
     <span className={cn("inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold", map[role] ?? "bg-muted text-muted-foreground")}>
       {role === "Admin" && <ShieldCheck className="w-3 h-3" />}
       {role === "TechLeader" && <PencilRuler className="w-3 h-3" />}
       {role === "Production" && <HardHat className="w-3 h-3" />}
+      {role === "Staff" && <UserCircle className="w-3 h-3" />}
       {role}
     </span>
   );

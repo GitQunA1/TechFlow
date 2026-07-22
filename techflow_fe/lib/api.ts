@@ -17,6 +17,9 @@ import type {
   NotificationDto,
   FileHistoryDto,
   DepartmentNoteRequest,
+  DraftFileDto,
+  StaffRevisionRequestDto,
+  StaffUserDto,
 } from "./types";
 
 export type {
@@ -32,6 +35,9 @@ export type {
   NotificationDto,
   FileHistoryDto,
   DepartmentNoteRequest,
+  DraftFileDto,
+  StaffRevisionRequestDto,
+  StaffUserDto,
 };
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://technical.vfr.net.vn:10114";
@@ -264,4 +270,70 @@ export interface HistoryDto {
 
 export async function getHistory(): Promise<HistoryDto[]> {
   return apiFetch<HistoryDto[]>("/api/admin/history");
+}
+
+// ── Staff Draft APIs ───────────────────────────────────────────────────────────────
+
+export async function getMyDrafts(): Promise<DraftFileDto[]> {
+  return apiFetch<DraftFileDto[]>("/api/files/drafts");
+}
+
+export async function getPendingDrafts(): Promise<DraftFileDto[]> {
+  return apiFetch<DraftFileDto[]>("/api/files/drafts/pending");
+}
+
+export async function reviewDraft(
+  id: number,
+  data: { approve: boolean; rejectReason?: string }
+): Promise<void> {
+  return apiFetch<void>(`/api/files/drafts/${id}/review`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function resubmitDraft(id: number, formData: FormData): Promise<void> {
+  return apiFetch<void>(`/api/files/drafts/${id}/resubmit`, {
+    method: "POST",
+    body: formData,
+  });
+}
+
+// ── Staff Revision APIs ─────────────────────────────────────────────────────────
+
+export async function createRevisionRequest(
+  fileId: number,
+  data: { message: string; assignedStaffId?: number | null }
+): Promise<void> {
+  return apiFetch<void>(`/api/files/${fileId}/revision-request`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getMyRevisionRequests(): Promise<StaffRevisionRequestDto[]> {
+  return apiFetch<StaffRevisionRequestDto[]>("/api/files/revision-requests");
+}
+
+export async function getPendingRevisionRequests(): Promise<StaffRevisionRequestDto[]> {
+  return apiFetch<StaffRevisionRequestDto[]>("/api/files/revision-requests/pending");
+}
+
+export async function submitRevision(id: number, formData: FormData): Promise<void> {
+  return apiFetch<void>(`/api/files/revision-requests/${id}/submit`, {
+    method: "POST",
+    body: formData,
+  });
+}
+
+export async function approveRevision(id: number): Promise<UploadFileResponse> {
+  return apiFetch<UploadFileResponse>(`/api/files/revision-requests/${id}/approve`, {
+    method: "POST",
+  });
+}
+
+// ── Admin staff users list ────────────────────────────────────────────────────────
+
+export async function getStaffUsers(): Promise<StaffUserDto[]> {
+  return apiFetch<StaffUserDto[]>("/api/admin/staff-users");
 }

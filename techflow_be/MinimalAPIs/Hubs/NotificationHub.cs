@@ -26,6 +26,30 @@ public class NotificationHub : Hub
             await Groups.AddToGroupAsync(Context.ConnectionId, "Admins");
         }
 
+        // TechLeader joins Leaders group
+        if (string.Equals(role, "TechLeader", StringComparison.OrdinalIgnoreCase))
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, "Leaders");
+        }
+
+        // Staff joins Staff group and personal group for targeted notifications
+        if (string.Equals(role, "Staff", StringComparison.OrdinalIgnoreCase))
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, "AllStaff");
+            var userIdStr = Context.GetHttpContext()?.Request.Query["userId"].FirstOrDefault();
+            if (int.TryParse(userIdStr, out var staffUserId))
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, StaffGroupName(staffUserId));
+            }
+        }
+
+        // Any role with userId joins personal group
+        var userIdFromQuery = Context.GetHttpContext()?.Request.Query["userId"].FirstOrDefault();
+        if (int.TryParse(userIdFromQuery, out var userIdVal))
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, UserGroupName(userIdVal));
+        }
+
         await base.OnConnectedAsync();
     }
 
@@ -36,4 +60,6 @@ public class NotificationHub : Hub
     }
 
     public static string DepartmentGroupName(int departmentId) => $"Department_{departmentId}";
+    public static string StaffGroupName(int staffUserId) => $"Staff_{staffUserId}";
+    public static string UserGroupName(int userId) => $"User_{userId}";
 }

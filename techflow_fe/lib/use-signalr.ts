@@ -12,8 +12,10 @@ import { API_BASE } from "./api";
 interface SignalROptions {
   /** Department ID to join the Department_{id} group */
   departmentId?: number | null;
-  /** Pass "Admin" to join the Admins group */
+  /** Pass "Admin", "TechLeader", "Staff" etc to join role group */
   role?: string | null;
+  /** User ID for personal notification group (User_{id}) */
+  userId?: number | null;
   /** Whether to attempt connection (set to false until user is known) */
   enabled?: boolean;
 }
@@ -26,7 +28,7 @@ interface UseSignalRReturn {
 }
 
 export function useSignalR(options: SignalROptions): UseSignalRReturn {
-  const { departmentId, role, enabled = true } = options;
+  const { departmentId, role, userId, enabled = true } = options;
   const connectionRef = useRef<signalR.HubConnection | null>(null);
   // Pending listeners registered before connection is ready
   const pendingListeners = useRef<Array<[string, EventCallback]>>([]);
@@ -37,6 +39,7 @@ export function useSignalR(options: SignalROptions): UseSignalRReturn {
     const params = new URLSearchParams();
     if (departmentId != null) params.set("departmentId", String(departmentId));
     if (role) params.set("role", role);
+    if (userId != null) params.set("userId", String(userId));
 
     const url = `${API_BASE}/hubs/notifications${params.toString() ? `?${params}` : ""}`;
 
@@ -73,7 +76,7 @@ export function useSignalR(options: SignalROptions): UseSignalRReturn {
       });
       connectionRef.current = null;
     };
-  }, [enabled, departmentId, role]);
+  }, [enabled, departmentId, role, userId]);
 
   const on = useCallback((eventName: string, callback: EventCallback) => {
     const conn = connectionRef.current;

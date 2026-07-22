@@ -184,6 +184,28 @@ export const translations: Record<Language, Dictionary> = {
         warning: "Are you sure you want to rollback to this version?",
         success: "Version rolled back successfully"
       }
+    },
+    staff: {
+      workspace: "Staff Workspace",
+      uploadDrafts: "Upload & Drafts",
+      revisionTasks: "Revision Tasks",
+      history: "History",
+      draftPending: "Pending Approval",
+      draftApproved: "Approved",
+      draftRejected: "Rejected",
+      reupload: "Re-upload",
+      uploadRevised: "Upload Revised File",
+      revisionMessage: "Leader's Note",
+      noDrafts: "No drafts yet. Upload a file to get started!",
+      noRevisions: "No revision tasks."
+    },
+    leader: {
+      pendingDrafts: "Pending Drafts",
+      approveDraft: "Approve",
+      rejectDraft: "Reject",
+      rejectReason: "Reject Reason",
+      requestRevision: "Request Staff Revision",
+      sendToStaff: "Send to Staff"
     }
   },
   vi: {
@@ -365,6 +387,28 @@ export const translations: Record<Language, Dictionary> = {
         warning: "Bạn có chắc muốn khôi phục lại phiên bản này?",
         success: "Khôi phục phiên bản thành công"
       }
+    },
+    staff: {
+      workspace: "Không gian làm việc Staff",
+      uploadDrafts: "Tải lên & Bản nháp",
+      revisionTasks: "Yêu cầu chỉnh sửa",
+      history: "Lịch sử",
+      draftPending: "Chờ duyệt",
+      draftApproved: "Đã duyệt",
+      draftRejected: "Bị từ chối",
+      reupload: "Tải lại",
+      uploadRevised: "Tải file đã chỉnh sửa",
+      revisionMessage: "Nội dung yêu cầu",
+      noDrafts: "Chưa có bản nháp nào. Upload file để bắt đầu!",
+      noRevisions: "Không có yêu cầu chỉnh sửa nào."
+    },
+    leader: {
+      pendingDrafts: "Bản nháp chờ duyệt",
+      approveDraft: "Duyệt",
+      rejectDraft: "Từ chối",
+      rejectReason: "Lý do từ chối",
+      requestRevision: "Yêu cầu Staff chỉnh sửa",
+      sendToStaff: "Gửi cho Staff"
     }
   }
 };

@@ -26,6 +26,26 @@ public sealed class NotificationBroadcaster
         return _hubContext.Clients.Group("Admins").SendAsync(eventName, payload);
     }
 
+    public Task BroadcastToLeadersAsync(string eventName, object payload)
+    {
+        return _hubContext.Clients.Group("Leaders").SendAsync(eventName, payload);
+    }
+
+    public Task BroadcastToAllStaffAsync(string eventName, object payload)
+    {
+        return _hubContext.Clients.Group("AllStaff").SendAsync(eventName, payload);
+    }
+
+    public Task BroadcastToStaffAsync(int staffUserId, string eventName, object payload)
+    {
+        return _hubContext.Clients.Group(NotificationHub.StaffGroupName(staffUserId)).SendAsync(eventName, payload);
+    }
+
+    public Task BroadcastToUserAsync(int userId, string eventName, object payload)
+    {
+        return _hubContext.Clients.Group(NotificationHub.UserGroupName(userId)).SendAsync(eventName, payload);
+    }
+
     public Task BroadcastToAllAsync(string eventName, object payload)
     {
         return _hubContext.Clients.All.SendAsync(eventName, payload);

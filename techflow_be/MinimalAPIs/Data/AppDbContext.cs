@@ -1,5 +1,6 @@
 using FileEntity = MinimalAPIs.Domain.Entities.File;
 using MinimalAPIs.Domain.Entities;
+using MinimalAPIs.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace MinimalAPIs.Data;
@@ -18,6 +19,8 @@ public class AppDbContext : DbContext
     public DbSet<FileVersion> FileVersions => Set<FileVersion>();
     public DbSet<Distribution> Distributions => Set<Distribution>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<DraftFile> DraftFiles => Set<DraftFile>();
+    public DbSet<StaffRevisionRequest> StaffRevisionRequests => Set<StaffRevisionRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -166,5 +169,62 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<User>().Property(x => x.Role).HasConversion<string>();
         modelBuilder.Entity<Distribution>().Property(x => x.Status).HasConversion<string>();
+
+        modelBuilder.Entity<DraftFile>(entity =>
+        {
+            entity.ToTable("DraftFiles");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.FileName).IsRequired().HasMaxLength(500);
+            entity.Property(x => x.FileUrl).HasMaxLength(1000).IsRequired(false);
+            entity.Property(x => x.Status).IsRequired().HasConversion<string>();
+            entity.Property(x => x.RejectReason).HasMaxLength(2000).IsRequired(false);
+            entity.Property(x => x.CreatedAt).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(x => x.ReviewedAt).HasColumnType("timestamp with time zone").IsRequired(false);
+            entity.Property(x => x.DepartmentIds).HasColumnType("integer[]");
+
+            entity.HasOne(x => x.Folder)
+                .WithMany()
+                .HasForeignKey(x => x.FolderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.UploadedBy)
+                .WithMany()
+                .HasForeignKey(x => x.UploadedById)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.ReviewedBy)
+                .WithMany()
+                .HasForeignKey(x => x.ReviewedById)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
+        });
+
+        modelBuilder.Entity<StaffRevisionRequest>(entity =>
+        {
+            entity.ToTable("StaffRevisionRequests");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Message).IsRequired().HasMaxLength(2000);
+            entity.Property(x => x.Status).IsRequired().HasConversion<string>();
+            entity.Property(x => x.SubmittedFileUrl).HasMaxLength(1000).IsRequired(false);
+            entity.Property(x => x.SubmittedFileName).HasMaxLength(500).IsRequired(false);
+            entity.Property(x => x.CreatedAt).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(x => x.SubmittedAt).HasColumnType("timestamp with time zone").IsRequired(false);
+
+            entity.HasOne(x => x.File)
+                .WithMany()
+                .HasForeignKey(x => x.FileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.RequestedBy)
+                .WithMany()
+                .HasForeignKey(x => x.RequestedById)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.AssignedStaff)
+                .WithMany()
+                .HasForeignKey(x => x.AssignedStaffId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
+        });
     }
 }

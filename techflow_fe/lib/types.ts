@@ -6,7 +6,7 @@
 export interface AuthUser {
   token: string;
   userId: number;
-  role: "Admin" | "TechLeader" | "Production";
+  role: "Admin" | "TechLeader" | "Production" | "Staff";
   categoryId: number | null;
   departmentId: number | null;
   username: string;
@@ -17,7 +17,7 @@ export interface AuthUser {
 export interface LoginResponse {
   token: string;
   userId: number;
-  role: "Admin" | "TechLeader" | "Production";
+  role: "Admin" | "TechLeader" | "Production" | "Staff";
   categoryId: number | null;
   departmentId: number | null;
 }
@@ -73,6 +73,7 @@ export interface FolderFileDto {
   createdAt: string; // ISO datetime
   sentToDepartments: string[];
   confirmedByDepartments: string[];
+  uploadedByRole: string;
 }
 
 // ── File Upload ───────────────────────────────────────────────────────────────
@@ -151,4 +152,48 @@ export interface DepartmentNoteRequest {
   departmentId: number;
   note: string;
   isAffected: boolean;
+}
+
+// ── Draft Files (Staff upload workflow) ───────────────────────────────────────
+
+export interface DraftFileDto {
+  id: number;
+  folderId: number;
+  folderName: string;
+  parentFolderName: string | null;
+  categoryId: number;
+  categoryName: string;
+  fileName: string;
+  fileUrl: string | null;
+  status: "Pending" | "Approved" | "Rejected";
+  rejectReason: string | null;
+  uploadedBy: string;
+  createdAt: string;
+  departmentIds: number[];
+}
+
+// ── Staff Revision Requests ────────────────────────────────────────────────────
+
+export interface StaffRevisionRequestDto {
+  id: number;
+  fileId: number;
+  fileName: string;
+  folderName: string;
+  categoryName: string;
+  message: string;
+  status: "Pending" | "Submitted" | "Approved";
+  requestedBy: string;
+  createdAt: string;
+  submittedFileUrl: string | null;
+  submittedFileName: string | null;
+  submittedAt: string | null;
+  assignedStaffId: number | null;
+  assignedStaffName: string | null;
+}
+
+// ── Staff Users ───────────────────────────────────────────────────────────────
+
+export interface StaffUserDto {
+  id: number;
+  username: string;
 }

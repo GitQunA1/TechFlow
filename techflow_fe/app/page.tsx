@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { HardHat, PencilRuler, ShieldCheck, Workflow, Loader2, Globe } from "lucide-react";
+import { HardHat, PencilRuler, ShieldCheck, Workflow, Loader2, Globe, UserCog } from "lucide-react";
 import { cn } from "@/lib/utils";
 import TechLeaderWorkspace from "@/components/techflow/tech-leader-workspace";
 import ProductionWorkspace from "@/components/techflow/production-workspace";
 import AdminDashboard from "@/components/techflow/admin-dashboard";
+import StaffWorkspace from "@/components/techflow/staff-workspace";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -118,6 +119,7 @@ export default function Page() {
                   {user.role === "TechLeader" && <PencilRuler className="w-3 h-3 ml-1 inline" />}
                   {user.role === "Production" && <HardHat className="w-3 h-3 ml-1 inline" />}
                   {user.role === "Admin" && <ShieldCheck className="w-3 h-3 ml-1 inline" />}
+                  {user.role === "Staff" && <UserCog className="w-3 h-3 ml-1 inline" />}
                 </Badge>
               </div>
               <Button 
@@ -143,6 +145,7 @@ export default function Page() {
         {user.role === "TechLeader" && <TechLeaderWorkspace />}
         {user.role === "Production" && <ProductionWorkspace />}
         {user.role === "Admin" && <AdminDashboard />}
+        {user.role === "Staff" && <StaffWorkspace />}
       </main>
 
       {/* FOOTER */}

@@ -11,5 +11,6 @@ public record FolderFileDto(
     string? ChangeReason,
     DateTime CreatedAt,
     IReadOnlyList<string> SentToDepartments,
-    IReadOnlyList<string> ConfirmedByDepartments
+    IReadOnlyList<string> ConfirmedByDepartments,
+    string UploadedByRole
 );

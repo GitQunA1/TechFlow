@@ -4,6 +4,7 @@ using MinimalAPIs.Domain.Entities;
 using MinimalAPIs.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace MinimalAPIs.Endpoints;
 
@@ -17,8 +18,7 @@ public static class FolderEndpoints
 
         group.MapGet("", GetFoldersAsync);
         group.MapGet("/{id:int}/files", GetFolderFilesAsync);
-        group.MapPost("", CreateFolderAsync)
-            .RequireAuthorization(new AuthorizeAttribute { Roles = $"{nameof(UserRole.TechLeader)},{nameof(UserRole.Admin)}" });
+        group.MapPost("", CreateFolderAsync); // Staff, Leader, Admin — role-checked inside handler
         group.MapDelete("/{id:int}", DeleteFolderAsync)
             .RequireAuthorization(new AuthorizeAttribute { Roles = $"{nameof(UserRole.TechLeader)},{nameof(UserRole.Admin)}" });
 
@@ -63,6 +63,7 @@ public static class FolderEndpoints
         var files = await dbContext.Files
             .AsNoTracking()
             .Include(f => f.Versions)
+                .ThenInclude(v => v.UploadedBy)
             .Include(f => f.Folder)
             .Where(f => f.FolderId == id)
             .ToListAsync(cancellationToken);
@@ -107,7 +108,8 @@ public static class FolderEndpoints
                     version.ChangeReason,
                     version.CreatedAt,
                     sentTo,
-                    confirmedBy);
+                    confirmedBy,
+                    version.UploadedBy?.Role.ToString() ?? "Unknown");
             });
         }).OrderByDescending(x => x.CreatedAt).ToList();
 
@@ -116,9 +118,28 @@ public static class FolderEndpoints
 
     private static async Task<IResult> CreateFolderAsync(
         CreateFolderRequest request,
+        ClaimsPrincipal user,
         AppDbContext dbContext,
         CancellationToken cancellationToken)
     {
+        // ── Role check: Staff allowed, but only for subfolders ─────────────
+        var currentUserId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(currentUserId, out var userId))
+            return Results.Unauthorized();
+
+        var currentUser = await dbContext.Users.FirstOrDefaultAsync(x => x.Id == userId, cancellationToken);
+        if (currentUser is null)
+            return Results.Unauthorized();
+
+        if (currentUser.Role != UserRole.Admin
+            && currentUser.Role != UserRole.TechLeader
+            && currentUser.Role != UserRole.Staff)
+            return Results.Forbid();
+
+        // Staff can only create subfolders (must have parentId)
+        if (currentUser.Role == UserRole.Staff && !request.ParentId.HasValue)
+            return Results.BadRequest("Staff can only create sub-folders under existing parent folders.");
+
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return Results.BadRequest("Folder name is required.");

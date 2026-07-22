@@ -2,7 +2,7 @@ name: Tự động Deploy TechFlow
 
 on:
   push:
-    branches: [ "feat/uploadfile_sever" ]
+    branches: [ "main" ]
 
 jobs:
   deploy:

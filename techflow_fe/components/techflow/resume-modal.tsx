@@ -5,6 +5,7 @@ import {
   Play,
   FolderOpen,
   Upload,
+  Send,
   Loader2,
   AlertTriangle,
   CheckCircle2,
@@ -31,6 +32,8 @@ interface ResumeModalProps {
   fileName: string;
   /** Names of departments that were stopped — used to pre-load the correct dept list */
   sentToDepartmentNames: string[];
+  /** Role of whoever uploaded the latest version ('Staff' | 'TechLeader' | ...) */
+  uploadedByRole?: string;
 }
 
 type DeptNoteState = { note: string; isAffected: boolean };
@@ -41,7 +44,9 @@ export function ResumeModal({
   fileId,
   fileName,
   sentToDepartmentNames,
+  uploadedByRole,
 }: ResumeModalProps) {
+  const isStaffFile = uploadedByRole === "Staff";
   const [tab, setTab] = useState<"simple" | "with-file">("simple");
 
   // All departments + filtered stopped departments
@@ -55,6 +60,7 @@ export function ResumeModal({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [newFileName, setNewFileName] = useState("");
   const [fileError, setFileError] = useState<string | null>(null);
+  const [sendingRequest, setSendingRequest] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -71,6 +77,7 @@ export function ResumeModal({
       setNewFileName("");
       setFileError(null);
       setDeptNotes({});
+      setSendingRequest(false);
       return;
     }
     setLoadingDepts(true);
@@ -115,7 +122,7 @@ export function ResumeModal({
       isAffected: deptNotes[d.id]?.isAffected ?? true,
     }));
 
-  const isValid = tab === "simple" ? true : stoppedDepts.every((d) => deptNotes[d.id]?.note?.trim()) && !!newFileName && !fileError;
+  const isValid = tab === "simple" ? true : isStaffFile ? true : stoppedDepts.every((d) => deptNotes[d.id]?.note?.trim()) && !!newFileName && !fileError;
 
   // Case 1 submit
   const handleSimpleResume = async () => {
@@ -133,7 +140,24 @@ export function ResumeModal({
     }
   };
 
-  // Case 2 submit – upload file vật lý
+  // Case 2a: Staff file — send revision request
+  const handleSendRevisionRequest = async () => {
+    setSendingRequest(true);
+    try {
+      const { createRevisionRequest } = await import("@/lib/api");
+      await createRevisionRequest(fileId, { message: null });
+      toast.success("Request sent to Staff!", {
+        description: "Staff has been notified to revise and re-upload this file.",
+      });
+      onOpenChange(false);
+    } catch (err: any) {
+      toast.error("Failed to send request", { description: err.message });
+    } finally {
+      setSendingRequest(false);
+    }
+  };
+
+  // Case 2b: Leader file — resume with new file
   const handleResumeWithFile = async () => {
     if (!isValid || !selectedFile || fileError) return;
     setSubmitting(true);
@@ -193,17 +217,40 @@ export function ResumeModal({
                 : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
             )}
           >
-            <Upload className="w-4 h-4" />
-            Resume with New File
-            <Badge className="text-[10px] h-4 px-1.5 bg-primary/20 text-primary border-0">New version</Badge>
+            {isStaffFile ? (
+              <>
+                <Send className="w-4 h-4" />
+                Send Request to Staff
+                <Badge className="text-[10px] h-4 px-1.5 bg-amber-500/20 text-amber-700 border-0">Staff revision</Badge>
+              </>
+            ) : (
+              <>
+                <Upload className="w-4 h-4" />
+                Resume with New File
+                <Badge className="text-[10px] h-4 px-1.5 bg-primary/20 text-primary border-0">New version</Badge>
+              </>
+            )}
           </button>
         </div>
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-background">
 
-          {/* Case 2: File upload zone (shown only in with-file tab) */}
-          {tab === "with-file" && (
+          {/* Case 2 for Staff file: Show send-request confirm UI */}
+          {tab === "with-file" && isStaffFile && (
+            <div className="space-y-3">
+              <div className="flex items-start gap-2 p-4 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-900/10 dark:border-amber-800">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-sm text-amber-700 dark:text-amber-400 space-y-1">
+                  <p className="font-medium">This file was originally uploaded by a Staff member.</p>
+                  <p>Sending a request will notify them to revise and re-upload. Once they submit, you can review and approve to resume production.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Case 2 for Leader file: File upload zone */}
+          {tab === "with-file" && !isStaffFile && (
             <div>
               <label className="text-sm font-medium mb-2 block">
                 Chọn bản vẽ mới thay thế <span className="text-destructive">*</span>
@@ -260,8 +307,8 @@ export function ResumeModal({
             </div>
           )}
 
-          {/* Department Notes (Only for Case 2) */}
-          {tab === "with-file" && (
+          {/* Department Notes (Only for Leader files in with-file tab) */}
+          {tab === "with-file" && !isStaffFile && (
             <div>
               <div className="flex items-center justify-between mb-3">
                 <label className="text-sm font-medium">
@@ -353,7 +400,7 @@ export function ResumeModal({
             {tab === "with-file" ? `${stoppedDepts.filter((d) => deptNotes[d.id]?.note?.trim()).length}/${stoppedDepts.length} notes filled` : ""}
           </p>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting || sendingRequest}>
               Cancel
             </Button>
             {tab === "simple" ? (
@@ -366,6 +413,18 @@ export function ResumeModal({
                   <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Resuming...</>
                 ) : (
                   <><Play className="w-4 h-4 mr-2 fill-current" /> Resume & Notify</>
+                )}
+              </Button>
+            ) : isStaffFile ? (
+              <Button
+                className="min-w-[180px] bg-amber-600 hover:bg-amber-700 text-white"
+                disabled={sendingRequest}
+                onClick={handleSendRevisionRequest}
+              >
+                {sendingRequest ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending...</>
+                ) : (
+                  <><Send className="w-4 h-4 mr-2" /> Send Request to Staff</>
                 )}
               </Button>
             ) : (

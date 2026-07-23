@@ -83,27 +83,11 @@ function DraftStatusBadge({ status }: { status: DraftFileDto["status"] }) {
   );
 }
 
-function RevisionStatusBadge({ status }: { status: StaffRevisionRequestDto["status"] }) {
-  if (status === "Pending")
-    return (
-      <Badge variant="outline" className="border-amber-500 text-amber-600 dark:text-amber-400 gap-1">
-        <Clock className="w-3 h-3" />
-        Chờ upload
-      </Badge>
-    );
-  if (status === "Submitted")
-    return (
-      <Badge variant="outline" className="border-blue-500 text-blue-600 dark:text-blue-400 gap-1">
-        <UploadCloud className="w-3 h-3" />
-        Đã gửi - Chờ Leader duyệt
-      </Badge>
-    );
-  return (
-    <Badge variant="outline" className="border-green-500 text-green-600 dark:text-green-400 gap-1">
-      <CheckCircle2 className="w-3 h-3" />
-      Đã duyệt
-    </Badge>
-  );
+function RevisionStatusBadge({ status }: { status: "Pending" | "Submitted" | "Approved" | "Rejected" }) {
+  if (status === "Pending") return <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50 gap-1.5"><Clock className="w-3.5 h-3.5" /> Chờ upload</Badge>;
+  if (status === "Submitted") return <Badge variant="outline" className="border-blue-500 text-blue-600 bg-blue-50 gap-1.5"><Upload className="w-3.5 h-3.5" /> Đã upload, chờ duyệt</Badge>;
+  if (status === "Rejected") return <Badge variant="outline" className="border-destructive text-destructive bg-destructive/10 gap-1.5"><AlertCircle className="w-3.5 h-3.5" /> Bị từ chối</Badge>;
+  return <Badge variant="outline" className="border-green-500 text-green-600 bg-green-50 gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> Đã duyệt</Badge>;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -411,6 +395,13 @@ export default function StaffWorkspace() {
 
   const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
 
+  const filteredDrafts = selectedFolder
+    ? drafts.filter((d) => d.folderId === selectedFolder.id)
+    : [];
+  const filteredRevisions = selectedFolder
+    ? revisions.filter((r) => r.folderId === selectedFolder.id)
+    : [];
+
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
       {/* LEFT: Category list */}
@@ -505,36 +496,42 @@ export default function StaffWorkspace() {
 
       {/* RIGHT: Tabs */}
       <main className="flex-1 overflow-hidden flex flex-col">
-        <Tabs defaultValue="drafts" className="flex flex-col h-full">
-          <div className="border-b px-4">
-            <TabsList className="mt-2">
-              <TabsTrigger value="drafts" className="gap-2">
-                <FileText className="w-4 h-4" />
-                Bản nháp của tôi
-                {drafts.filter((d) => d.status === "Pending").length > 0 && (
-                  <Badge className="ml-1 h-5 px-1.5 text-xs bg-amber-500">
-                    {drafts.filter((d) => d.status === "Pending").length}
-                  </Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="revisions" className="gap-2">
-                <Wrench className="w-4 h-4" />
-                Yêu cầu chỉnh sửa
-                {revisions.filter((r) => r.status === "Pending").length > 0 && (
-                  <Badge className="ml-1 h-5 px-1.5 text-xs bg-red-500">
-                    {revisions.filter((r) => r.status === "Pending").length}
-                  </Badge>
-                )}
-              </TabsTrigger>
-            </TabsList>
+        {!selectedFolder ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-muted/10 p-8 text-center space-y-3">
+            <FolderOpen className="w-12 h-12 opacity-20" />
+            <p>Vui lòng chọn một thư mục từ danh sách bên trái để xem các bản nháp và yêu cầu chỉnh sửa.</p>
           </div>
+        ) : (
+          <Tabs defaultValue="drafts" className="flex flex-col h-full">
+            <div className="border-b px-4">
+              <TabsList className="mt-2">
+                <TabsTrigger value="drafts" className="gap-2">
+                  <FileText className="w-4 h-4" />
+                  Bản nháp của tôi
+                  {filteredDrafts.filter((d) => d.status === "Pending").length > 0 && (
+                    <Badge className="ml-1 h-5 px-1.5 text-xs bg-amber-500">
+                      {filteredDrafts.filter((d) => d.status === "Pending").length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="revisions" className="gap-2">
+                  <Wrench className="w-4 h-4" />
+                  Yêu cầu chỉnh sửa
+                  {filteredRevisions.filter((r) => r.status === "Pending" || r.status === "Rejected").length > 0 && (
+                    <Badge className="ml-1 h-5 px-1.5 text-xs bg-red-500">
+                      {filteredRevisions.filter((r) => r.status === "Pending" || r.status === "Rejected").length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-          {/* DRAFTS TAB */}
-          <TabsContent value="drafts" className="flex-1 overflow-y-auto p-4 space-y-3">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Bản nháp của tôi ({drafts.length})
-              </h2>
+            {/* DRAFTS TAB */}
+            <TabsContent value="drafts" className="flex-1 overflow-y-auto p-4 space-y-3">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  Bản nháp của tôi ({filteredDrafts.length})
+                </h2>
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={loadDrafts}>
                 <RefreshCw className={cn("w-3.5 h-3.5", loadingDrafts && "animate-spin")} />
               </Button>
@@ -544,13 +541,13 @@ export default function StaffWorkspace() {
               <div className="flex justify-center py-12">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
-            ) : drafts.length === 0 ? (
+            ) : filteredDrafts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
                 <FileText className="w-10 h-10 opacity-30" />
-                <p className="text-sm">Chưa có bản nháp nào. Upload file để bắt đầu!</p>
+                <p className="text-sm">Chưa có bản nháp nào trong thư mục này. Upload file để bắt đầu!</p>
               </div>
             ) : (
-              drafts.map((draft) => (
+              filteredDrafts.map((draft) => (
                 <Card key={draft.id} className="hover:shadow-sm transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3">
@@ -604,7 +601,7 @@ export default function StaffWorkspace() {
           <TabsContent value="revisions" className="flex-1 overflow-y-auto p-4 space-y-3">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Yêu cầu chỉnh sửa từ Leader ({revisions.length})
+                Yêu cầu chỉnh sửa từ Leader ({filteredRevisions.length})
               </h2>
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={loadRevisions}>
                 <RefreshCw className={cn("w-3.5 h-3.5", loadingRevisions && "animate-spin")} />
@@ -615,13 +612,13 @@ export default function StaffWorkspace() {
               <div className="flex justify-center py-12">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
-            ) : revisions.length === 0 ? (
+            ) : filteredRevisions.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
                 <Wrench className="w-10 h-10 opacity-30" />
-                <p className="text-sm">Không có yêu cầu chỉnh sửa nào.</p>
+                <p className="text-sm">Không có yêu cầu chỉnh sửa nào trong thư mục này.</p>
               </div>
             ) : (
-              revisions.map((rev) => (
+              filteredRevisions.map((rev) => (
                 <Card key={rev.id} className={cn(
                   "hover:shadow-sm transition-shadow",
                   rev.status === "Pending" && "border-amber-300 dark:border-amber-700"
@@ -643,17 +640,19 @@ export default function StaffWorkspace() {
                       <RevisionStatusBadge status={rev.status} />
                     </div>
 
-                    {/* Leader message */}
-                    <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3">
-                      <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-1">
-                        Nội dung yêu cầu
-                      </p>
-                      <p className="text-sm text-amber-900 dark:text-amber-200 whitespace-pre-wrap break-words">
-                        {rev.message}
-                      </p>
-                    </div>
+                    {/* Rejected message */}
+                    {rev.status === "Rejected" && rev.message && (
+                      <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3">
+                        <p className="text-xs font-semibold text-destructive uppercase tracking-wide mb-1">
+                          Lý do từ chối
+                        </p>
+                        <p className="text-sm text-destructive/90 whitespace-pre-wrap break-words">
+                          {rev.message}
+                        </p>
+                      </div>
+                    )}
 
-                    {rev.status === "Pending" && (
+                    {(rev.status === "Pending" || rev.status === "Rejected") && (
                       <Button
                         size="sm"
                         className="gap-2"
@@ -686,9 +685,10 @@ export default function StaffWorkspace() {
             )}
           </TabsContent>
         </Tabs>
+        )}
       </main>
 
-      {/* Modals */}
+      {/* Upload Draft Modal */}
       {selectedFolder && (
         <UploadModal
           open={uploadOpen}

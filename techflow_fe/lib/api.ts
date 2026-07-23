@@ -326,11 +326,18 @@ export async function submitRevision(id: number, formData: FormData): Promise<vo
   });
 }
 
-export async function approveRevision(id: number): Promise<UploadFileResponse> {
+export const approveRevision = async (id: number): Promise<UploadFileResponse> => {
   return apiFetch<UploadFileResponse>(`/api/files/revision-requests/${id}/approve`, {
     method: "POST",
   });
-}
+};
+
+export const rejectRevision = async (id: number, data: { reason: string }): Promise<void> => {
+  await apiFetch<void>(`/api/files/revision-requests/${id}/reject`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+};
 
 // ── Admin staff users list ────────────────────────────────────────────────────────
 

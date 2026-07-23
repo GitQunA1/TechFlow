@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   ArrowLeft,
   Briefcase,
@@ -40,6 +40,7 @@ import { StopModal } from "./stop-modal";
 import { ResumeModal } from "./resume-modal";
 import { DraftReviewModal } from "./draft-review-modal";
 import { RevisionRequestModal } from "./revision-request-modal";
+import { RevisionApprovalModal } from "./revision-approval-modal";
 import { useAuth } from "@/lib/auth-context";
 import {
   getCategories,
@@ -49,6 +50,8 @@ import {
   deleteFolder,
   stopFile,
   getPendingDrafts,
+  getPendingRevisionRequests,
+  approveRevision,
   getDepartments,
   createRevisionRequest,
   getStaffUsers,
@@ -58,6 +61,7 @@ import {
   DraftFileDto,
   DepartmentDto,
   StaffUserDto,
+  StaffRevisionRequestDto,
   API_BASE,
 } from "@/lib/api";
 import { toast } from "sonner";
@@ -105,26 +109,38 @@ export default function TechLeaderWorkspace() {
   const [reviewDraftCtx, setReviewDraftCtx] = useState<DraftFileDto | null>(null);
   const [draftPanelOpen, setDraftPanelOpen] = useState(false);
 
-  // Revision request state
+  // Pending revision requests (Staff submitted revised file, waiting for leader to approve)
+  const [pendingRevisions, setPendingRevisions] = useState<StaffRevisionRequestDto[]>([]);
+  const [revisionReviewCtx, setRevisionReviewCtx] = useState<StaffRevisionRequestDto | null>(null);
+
+  // Revision request state (not used for inline modal anymore — kept for compat)
   const [revisionCtx, setRevisionCtx] = useState<{ fileId: number; fileName: string } | null>(null);
   const [revisionMessage, setRevisionMessage] = useState("");
   const [revisionStaffId, setRevisionStaffId] = useState<number | null>(null);
   const [sendingRevision, setSendingRevision] = useState(false);
 
-  const loadPendingDrafts = () => {
+  const loadPendingDrafts = useCallback(() => {
     getPendingDrafts()
       .then(setPendingDrafts)
       .catch(console.error);
-  };
+  }, []);
+
+  const loadPendingRevisions = useCallback(() => {
+    getPendingRevisionRequests()
+      .then(setPendingRevisions)
+      .catch(console.error);
+  }, []);
 
   useEffect(() => {
     loadPendingDrafts();
+    loadPendingRevisions();
     getDepartments().then(setDepartments).catch(console.error);
     getStaffUsers().then(setStaffUsers).catch(console.error);
   }, []);
 
   const { on } = useSignalR({
-    role: user?.role === "Admin" ? "Admin" : undefined,
+    role: user?.role,
+    userId: user?.userId,
   });
 
   useEffect(() => {
@@ -134,11 +150,19 @@ export default function TechLeaderWorkspace() {
     const offConfirm = on("DistributionConfirmed", () => {
       setRefreshTrigger(prev => prev + 1);
     });
+    const offDraft = on("NewDraftNotification", () => {
+      loadPendingDrafts();
+    });
+    const offRevision = on("RevisionSubmitted", () => {
+      loadPendingRevisions();
+    });
     return () => {
       offUpload();
       offConfirm();
+      offDraft();
+      offRevision();
     };
-  }, [on]);
+  }, [on, loadPendingDrafts, loadPendingRevisions]);
 
   useEffect(() => {
     getCategories()
@@ -219,6 +243,8 @@ export default function TechLeaderWorkspace() {
           setResumeCtx={setResumeCtx}
           pendingDrafts={pendingDrafts.filter(d => d.categoryId === selectedCategory.id)}
           setReviewDraftCtx={setReviewDraftCtx}
+          pendingRevisions={pendingRevisions}
+          setRevisionReviewCtx={setRevisionReviewCtx}
         />
       )}
 
@@ -269,32 +295,20 @@ export default function TechLeaderWorkspace() {
         />
       )}
 
-      {resumeCtx && resumeCtx.uploadedByRole === "Staff" && (
-        <RevisionRequestModal
-          open={!!resumeCtx}
-          onOpenChange={(open) => {
-            if (!open) {
-              setResumeCtx(null);
-              setRefreshTrigger((p) => p + 1);
-            }
-          }}
-          fileId={resumeCtx.fileId}
-          fileName={resumeCtx.fileName}
-        />
-      )}
-
-      {resumeCtx && resumeCtx.uploadedByRole !== "Staff" && (
+      {resumeCtx && (
         <ResumeModal
           open={!!resumeCtx}
           onOpenChange={(open) => {
             if (!open) {
               setResumeCtx(null);
               setRefreshTrigger((p) => p + 1);
+              loadPendingRevisions();
             }
           }}
           fileId={resumeCtx.fileId}
           fileName={resumeCtx.fileName}
           sentToDepartmentNames={resumeCtx.sentToDepartments}
+          uploadedByRole={resumeCtx.uploadedByRole}
         />
       )}
 
@@ -309,6 +323,20 @@ export default function TechLeaderWorkspace() {
             setReviewDraftCtx(null);
             setRefreshTrigger((prev) => prev + 1);
           }}
+        />
+      )}
+
+      {revisionReviewCtx && (
+        <RevisionApprovalModal
+          open={!!revisionReviewCtx}
+          onOpenChange={(open) => {
+            if (!open) {
+              setRevisionReviewCtx(null);
+              loadPendingRevisions();
+              setRefreshTrigger((prev) => prev + 1);
+            }
+          }}
+          revision={revisionReviewCtx}
         />
       )}
 
@@ -329,6 +357,8 @@ function CategoryWorkspace({
   setResumeCtx,
   pendingDrafts,
   setReviewDraftCtx,
+  pendingRevisions,
+  setRevisionReviewCtx,
 }: {
   category: CategoryDto;
   managed: boolean;
@@ -340,6 +370,8 @@ function CategoryWorkspace({
   setResumeCtx: (ctx: any) => void;
   pendingDrafts: DraftFileDto[];
   setReviewDraftCtx: (ctx: DraftFileDto) => void;
+  pendingRevisions: StaffRevisionRequestDto[];
+  setRevisionReviewCtx: (ctx: StaffRevisionRequestDto) => void;
 }) {
   const { t } = useLanguage();
   const [folders, setFolders] = useState<FolderTreeDto[]>([]);
@@ -467,6 +499,8 @@ function CategoryWorkspace({
               onRefresh={loadFolders}
               pendingDrafts={pendingDrafts.filter(d => d.folderId === selectedFolder.id)}
               setReviewDraftCtx={setReviewDraftCtx}
+              pendingRevisions={pendingRevisions.filter(r => r.fileId != null)}
+              setRevisionReviewCtx={setRevisionReviewCtx}
             />
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8 text-center bg-muted/5">
@@ -753,6 +787,8 @@ function FileViewerPane({
   onRefresh,
   pendingDrafts,
   setReviewDraftCtx,
+  pendingRevisions,
+  setRevisionReviewCtx,
 }: {
   folder: FolderTreeDto;
   categoryId: number;
@@ -765,6 +801,8 @@ function FileViewerPane({
   onRefresh: () => void;
   pendingDrafts: DraftFileDto[];
   setReviewDraftCtx: (ctx: DraftFileDto) => void;
+  pendingRevisions: StaffRevisionRequestDto[];
+  setRevisionReviewCtx: (ctx: StaffRevisionRequestDto) => void;
 }) {
   const { t } = useLanguage();
   const [files, setFiles] = useState<FolderFileDto[]>([]);
@@ -850,7 +888,60 @@ function FileViewerPane({
           </div>
         )}
 
-        {/* Regular Files Section */}
+        {/* Submitted Revisions from Staff (waiting for Leader approval) */}
+        {pendingRevisions.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-2">
+              <Upload className="w-4 h-4" />
+              Awaiting Revision Approval ({pendingRevisions.length})
+            </h4>
+            {pendingRevisions.map((rev) => (
+              <div
+                key={rev.id}
+                className="group flex flex-col p-4 text-sm rounded-lg border bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/50 transition-all hover:shadow-sm"
+              >
+                <div className="flex items-start justify-between w-full gap-4">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-10 h-10 rounded-md flex items-center justify-center shrink-0 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="truncate font-semibold text-base text-blue-900 dark:text-blue-100">
+                          {rev.fileName}
+                        </span>
+                        <Badge variant="outline" className="border-blue-500 text-blue-600 dark:text-blue-400 gap-1 bg-blue-500/10">
+                          Revision Submitted
+                        </Badge>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        By <span className="font-medium text-foreground">{rev.assignedStaffName ?? "Staff"}</span>
+                        {rev.submittedAt && ` · ${new Date(rev.submittedAt).toLocaleString()}`}
+                      </div>
+                      {rev.submittedNote && (
+                        <p className="mt-1 text-xs text-blue-700 dark:text-blue-300 bg-blue-100/60 dark:bg-blue-900/30 rounded px-2 py-1">
+                          📝 {rev.submittedNote}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      size="sm"
+                      className="h-8 gap-1.5 bg-blue-600 hover:bg-blue-700 text-white"
+                      onClick={() => setRevisionReviewCtx(rev)}
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      Review
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+
         {loading ? (
           <div className="flex-1 flex items-center justify-center text-muted-foreground min-h-[200px]">Loading files...</div>
         ) : files.length === 0 ? (

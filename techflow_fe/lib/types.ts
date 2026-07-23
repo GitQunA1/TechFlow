@@ -177,15 +177,17 @@ export interface DraftFileDto {
 export interface StaffRevisionRequestDto {
   id: number;
   fileId: number;
+  folderId: number;
   fileName: string;
   folderName: string;
   categoryName: string;
-  message: string;
-  status: "Pending" | "Submitted" | "Approved";
+  message: string | null;
+  status: "Pending" | "Submitted" | "Approved" | "Rejected";
   requestedBy: string;
   createdAt: string;
   submittedFileUrl: string | null;
   submittedFileName: string | null;
+  submittedNote: string | null;
   submittedAt: string | null;
   assignedStaffId: number | null;
   assignedStaffName: string | null;

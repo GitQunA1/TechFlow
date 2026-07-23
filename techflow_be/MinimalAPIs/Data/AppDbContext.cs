@@ -203,10 +203,11 @@ public class AppDbContext : DbContext
         {
             entity.ToTable("StaffRevisionRequests");
             entity.HasKey(x => x.Id);
-            entity.Property(x => x.Message).IsRequired().HasMaxLength(2000);
+            entity.Property(x => x.Message).IsRequired(false).HasMaxLength(2000);
             entity.Property(x => x.Status).IsRequired().HasConversion<string>();
             entity.Property(x => x.SubmittedFileUrl).HasMaxLength(1000).IsRequired(false);
             entity.Property(x => x.SubmittedFileName).HasMaxLength(500).IsRequired(false);
+            entity.Property(x => x.SubmittedNote).HasMaxLength(2000).IsRequired(false);
             entity.Property(x => x.CreatedAt).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.Property(x => x.SubmittedAt).HasColumnType("timestamp with time zone").IsRequired(false);
 

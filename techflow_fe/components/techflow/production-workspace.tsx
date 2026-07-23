@@ -530,6 +530,7 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
   const isConfirmed = file.status === "Confirmed";
   const isOverdue = file.status === "Overdue";
   const showStop = file.isStopped && isNew;
+  const showChangeReason = file.changeReason && file.changeReason !== "Approved staff draft";
 
   if (showStop) {
     return (
@@ -544,7 +545,7 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
             </div>
 
             <div className="space-y-1.5 text-sm font-medium opacity-90 pt-2 w-full max-w-[90%] mx-auto text-left">
-              {file.changeReason && (
+              {showChangeReason && (
                 <p className="bg-white/10 p-2.5 rounded-md whitespace-pre-wrap break-words max-h-24 overflow-y-auto shadow-inner text-xs leading-relaxed">
                   <span className="font-bold">{file.categoryLeader || 'Tech Leader'}:</span> {file.changeReason}
                 </p>
@@ -643,9 +644,9 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
             </div>
           </div>
 
-          {(file.changeReason || file.note) && (
+          {(showChangeReason || file.note) && (
             <div className="bg-orange-100/70 dark:bg-orange-900/20 p-3.5 rounded-xl text-sm border border-orange-200 dark:border-orange-800/50 shadow-sm">
-              {file.changeReason && (
+              {showChangeReason && (
                 <>
                   <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5 mb-1">
                     <CircleAlert className="w-3 h-3 shrink-0" />

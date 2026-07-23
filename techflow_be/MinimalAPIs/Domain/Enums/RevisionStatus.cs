@@ -4,5 +4,6 @@ public enum RevisionStatus
 {
     Pending = 1,     // Leader đã gửi yêu cầu, Staff chưa submit
     Submitted = 2,   // Staff đã upload file mới, chờ Leader duyệt
-    Approved = 3     // Leader đã duyệt → Resume file + publish
+    Approved = 3,    // Leader đã duyệt → Resume file + publish
+    Rejected = 4     // Leader từ chối file submit của Staff, yêu cầu làm lại
 }

@@ -543,8 +543,7 @@ public static class FileEndpoints
             if (currentUser.Role != UserRole.Admin && currentUser.Role != UserRole.TechLeader)
                 return Results.Forbid();
 
-            if (string.IsNullOrWhiteSpace(request.Message))
-                return Results.BadRequest("Message is required.");
+            // Message is optional for Leader — Staff can see their request without a specific note
 
             var file = await dbContext.Files.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
             if (file is null) return Results.NotFound("File not found.");
@@ -621,6 +620,7 @@ public static class FileEndpoints
                 .Select(r => new StaffRevisionRequestDto(
                     r.Id,
                     r.FileId,
+                    r.File.FolderId,
                     r.File.FileName,
                     r.File.Folder.Name,
                     r.File.Folder.Category.Name,
@@ -630,6 +630,7 @@ public static class FileEndpoints
                     r.CreatedAt,
                     r.SubmittedFileUrl,
                     r.SubmittedFileName,
+                    r.SubmittedNote,
                     r.SubmittedAt,
                     r.AssignedStaffId,
                     r.AssignedStaff != null ? r.AssignedStaff.Username : null))
@@ -661,6 +662,7 @@ public static class FileEndpoints
                 .Select(r => new StaffRevisionRequestDto(
                     r.Id,
                     r.FileId,
+                    r.File.FolderId,
                     r.File.FileName,
                     r.File.Folder.Name,
                     r.File.Folder.Category.Name,
@@ -670,6 +672,7 @@ public static class FileEndpoints
                     r.CreatedAt,
                     r.SubmittedFileUrl,
                     r.SubmittedFileName,
+                    r.SubmittedNote,
                     r.SubmittedAt,
                     r.AssignedStaffId,
                     r.AssignedStaff != null ? r.AssignedStaff.Username : null))
@@ -681,6 +684,7 @@ public static class FileEndpoints
         // POST /api/files/revision-requests/{id}/submit — Staff submits revised file
         group.MapPost("/revision-requests/{id:int}/submit", async (
             int id,
+            [FromForm] string? note,
             IFormFile file,
             ClaimsPrincipal user,
             AppDbContext dbContext,
@@ -698,8 +702,8 @@ public static class FileEndpoints
                 .FirstOrDefaultAsync(r => r.Id == id && (r.AssignedStaffId == userId || r.AssignedStaffId == null), cancellationToken);
 
             if (revisionRequest is null) return Results.NotFound("Revision request not found.");
-            if (revisionRequest.Status != RevisionStatus.Pending)
-                return Results.BadRequest("This revision request is not in Pending state.");
+            if (revisionRequest.Status != RevisionStatus.Pending && revisionRequest.Status != RevisionStatus.Rejected)
+                return Results.BadRequest("This revision request is not in a valid state to submit.");
 
             if (file == null || file.Length == 0)
                 return Results.BadRequest("File is required.");
@@ -722,6 +726,7 @@ public static class FileEndpoints
 
             revisionRequest.SubmittedFileUrl = $"/uploads/{uniqueFileName}";
             revisionRequest.SubmittedFileName = originalFileName;
+            revisionRequest.SubmittedNote = note;
             revisionRequest.Status = RevisionStatus.Submitted;
             revisionRequest.SubmittedAt = DateTime.UtcNow;
 
@@ -781,13 +786,16 @@ public static class FileEndpoints
                 .Select(x => (int?)x.VersionNumber)
                 .MaxAsync(cancellationToken) ?? 0;
 
+            var staffNote = revisionRequest.SubmittedNote;
             var fileVersion = new FileVersion
             {
                 FileId = fileRecord.Id,
                 FileName = revisionRequest.SubmittedFileName ?? fileRecord.FileName,
                 VersionNumber = nextVersionNumber + 1,
                 FileUrl = revisionRequest.SubmittedFileUrl,
-                ChangeReason = "Staff revision approved",
+                ChangeReason = string.IsNullOrWhiteSpace(staffNote)
+                    ? "Staff revision approved"
+                    : staffNote,
                 UploadedById = revisionRequest.AssignedStaffId ?? userId,
                 CreatedAt = DateTime.UtcNow
             };
@@ -819,14 +827,15 @@ public static class FileEndpoints
 
                 var notifications = resumedDepartmentIds.Select(deptId =>
                 {
-                    var note = notesList.FirstOrDefault(n => n.DepartmentId == deptId);
+                    var deptNoteEntry = notesList.FirstOrDefault(n => n.DepartmentId == deptId);
+                    var msg = !string.IsNullOrWhiteSpace(staffNote)
+                        ? staffNote
+                        : deptNoteEntry?.Note ?? "File has been resumed with a new revision from staff.";
                     return new Notification
                     {
                         DepartmentId = deptId,
-                        Title = note?.IsAffected == true
-                            ? $"[RESUME + Revision mới - Có ảnh hưởng] {fileVersion.FileName} v{fileVersion.VersionNumber}"
-                            : $"[RESUME + Revision mới - Không ảnh hưởng] {fileVersion.FileName} v{fileVersion.VersionNumber}",
-                        Message = note?.Note ?? "File has been resumed with a new revision from staff.",
+                        Title = $"[RESUME + New Revision] {fileVersion.FileName} v{fileVersion.VersionNumber}",
+                        Message = msg,
                         TargetFolderId = fileRecord.FolderId,
                         IsRead = false,
                         CreatedAt = DateTime.UtcNow
@@ -871,6 +880,55 @@ public static class FileEndpoints
                 fileVersion.Id,
                 fileVersion.VersionNumber,
                 fileVersion.FileUrl));
+        });
+
+        // ── POST /api/files/revision-requests/{id}/reject ─────────────────────────
+        group.MapPost("/revision-requests/{id:int}/reject", async (
+            int id,
+            [FromBody] RejectRevisionRequest request,
+            ClaimsPrincipal user,
+            AppDbContext dbContext,
+            NotificationBroadcaster broadcaster,
+            CancellationToken cancellationToken) =>
+        {
+            var currentUserId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(currentUserId, out var userId)) return Results.Unauthorized();
+
+            var currentUser = await dbContext.Users.FirstAsync(x => x.Id == userId, cancellationToken);
+            if (currentUser.Role != UserRole.Admin && currentUser.Role != UserRole.TechLeader)
+                return Results.Forbid();
+
+            var revisionRequest = await dbContext.StaffRevisionRequests
+                .Include(r => r.File)
+                .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+
+            if (revisionRequest is null) return Results.NotFound("Revision request not found.");
+            if (revisionRequest.Status != RevisionStatus.Submitted)
+                return Results.BadRequest("Revision request must be in Submitted state to reject.");
+
+            var fileRecord = revisionRequest.File;
+            if (!fileRecord.IsStopped)
+                return Results.BadRequest("The file is no longer stopped.");
+
+            // Reject the revision -> set status to Rejected and save reason in Message
+            revisionRequest.Status = RevisionStatus.Rejected;
+            revisionRequest.Message = request.Reason;
+            
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            // Notify the staff member
+            if (revisionRequest.AssignedStaffId.HasValue)
+            {
+                await broadcaster.BroadcastToStaffAsync(revisionRequest.AssignedStaffId.Value, "RevisionRejected", new
+                {
+                    RevisionId = revisionRequest.Id,
+                    FileId = fileRecord.Id,
+                    fileRecord.FileName,
+                    Reason = request.Reason
+                });
+            }
+
+            return Results.Ok(new { Message = "Revision rejected successfully." });
         });
 
         // ── POST /api/files/{id}/resume-with-file ─────────────────────────

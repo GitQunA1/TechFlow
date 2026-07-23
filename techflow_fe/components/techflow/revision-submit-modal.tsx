@@ -10,6 +10,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { submitRevision } from "@/lib/api";
@@ -32,11 +34,13 @@ export function RevisionSubmitModal({
 }: RevisionSubmitModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const reset = () => {
     setSelectedFile(null);
     setFileError(null);
+    setNote("");
     setSubmitting(false);
   };
 
@@ -60,10 +64,15 @@ export function RevisionSubmitModal({
 
   const handleSubmit = async () => {
     if (!revision || !selectedFile) return;
+    if (!note.trim()) {
+      toast.error("Please describe what you changed in the note.");
+      return;
+    }
     setSubmitting(true);
     try {
       const fd = new FormData();
       fd.append("file", selectedFile);
+      fd.append("note", note.trim());
       await submitRevision(revision.id, fd);
       toast.success("Revised file submitted! Waiting for leader approval.");
       onSubmitted();
@@ -86,7 +95,7 @@ export function RevisionSubmitModal({
             Upload Revised File
           </DialogTitle>
           <DialogDescription>
-            Upload the revised file as requested by the leader.
+            Upload the revised file and describe what you changed.
           </DialogDescription>
         </DialogHeader>
 
@@ -102,19 +111,21 @@ export function RevisionSubmitModal({
             </div>
           </div>
 
-          {/* Leader message */}
-          <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-3 space-y-1">
-            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-xs font-semibold uppercase tracking-wide">
-              <AlertCircle className="w-3.5 h-3.5" />
-              Leader's note
+          {/* Leader message (if any) */}
+          {revision.message && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-3 space-y-1">
+              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-xs font-semibold uppercase tracking-wide">
+                <AlertCircle className="w-3.5 h-3.5" />
+                Leader's Note
+              </div>
+              <p className="text-sm text-amber-900 dark:text-amber-200 whitespace-pre-wrap">
+                {revision.message}
+              </p>
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                — {revision.requestedBy}
+              </p>
             </div>
-            <p className="text-sm text-amber-900 dark:text-amber-200 whitespace-pre-wrap">
-              {revision.message}
-            </p>
-            <p className="text-xs text-amber-600 dark:text-amber-400">
-              — {revision.requestedBy}
-            </p>
-          </div>
+          )}
 
           {/* File picker */}
           <div className="space-y-2">
@@ -139,12 +150,8 @@ export function RevisionSubmitModal({
                 </div>
               ) : (
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">
-                    Click to select file
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    .png, .jpg, .jpeg, .pdf, .dwg
-                  </p>
+                  <p className="text-sm text-muted-foreground">Click to select file</p>
+                  <p className="text-xs text-muted-foreground">.png, .jpg, .jpeg, .pdf, .dwg</p>
                 </div>
               )}
               <input
@@ -161,19 +168,37 @@ export function RevisionSubmitModal({
             )}
           </div>
 
+          {/* Update note — required */}
+          <div className="space-y-2">
+            <Label htmlFor="revision-note">
+              Update Notes <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              id="revision-note"
+              placeholder="Describe what you changed in this revision (e.g. updated dimensions, corrected tolerances)..."
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={3}
+              disabled={submitting}
+            />
+            <p className="text-xs text-muted-foreground">
+              These notes will be sent to all departments when the leader approves.
+            </p>
+          </div>
+
           {/* Actions */}
           <div className="flex gap-2 pt-2">
             <Button
               className="flex-1"
               onClick={handleSubmit}
-              disabled={!selectedFile || submitting}
+              disabled={!selectedFile || !note.trim() || submitting}
             >
               {submitting ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : (
                 <Upload className="w-4 h-4 mr-2" />
               )}
-              Submit Revised File
+              Submit for Review
             </Button>
             <Button
               variant="outline"

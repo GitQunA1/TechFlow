@@ -557,12 +557,20 @@ public static class FileEndpoints
             if (existingRequest)
                 return Results.BadRequest("There is already an active revision request for this file.");
 
+            // Automatically assign to the user who uploaded the latest version of this file
+            var latestVersion = await dbContext.FileVersions
+                .Where(v => v.FileId == id)
+                .OrderByDescending(v => v.VersionNumber)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var assignedStaffId = request.AssignedStaffId ?? latestVersion?.UploadedById;
+
             var revisionRequest = new StaffRevisionRequest
             {
                 FileId = id,
                 RequestedById = userId,
                 Message = request.Message,
-                AssignedStaffId = request.AssignedStaffId,
+                AssignedStaffId = assignedStaffId,
                 Status = RevisionStatus.Pending,
                 CreatedAt = DateTime.UtcNow
             };
@@ -570,21 +578,10 @@ public static class FileEndpoints
             dbContext.StaffRevisionRequests.Add(revisionRequest);
             await dbContext.SaveChangesAsync(cancellationToken);
 
-            // Notify assigned staff or all staff
-            if (request.AssignedStaffId.HasValue)
+            // Notify assigned staff
+            if (assignedStaffId.HasValue)
             {
-                await broadcaster.BroadcastToStaffAsync(request.AssignedStaffId.Value, "RevisionRequested", new
-                {
-                    RevisionId = revisionRequest.Id,
-                    FileId = id,
-                    file.FileName,
-                    request.Message,
-                    RequestedBy = currentUser.Username
-                });
-            }
-            else
-            {
-                await broadcaster.BroadcastToAllStaffAsync("RevisionRequested", new
+                await broadcaster.BroadcastToStaffAsync(assignedStaffId.Value, "RevisionRequested", new
                 {
                     RevisionId = revisionRequest.Id,
                     FileId = id,
@@ -614,7 +611,7 @@ public static class FileEndpoints
                 .Include(r => r.File).ThenInclude(f => f.Folder).ThenInclude(f => f.Category)
                 .Include(r => r.RequestedBy)
                 .Include(r => r.AssignedStaff)
-                .Where(r => r.AssignedStaffId == userId || r.AssignedStaffId == null)
+                .Where(r => r.AssignedStaffId == userId)
                 .Where(r => r.Status != RevisionStatus.Approved)
                 .OrderByDescending(r => r.CreatedAt)
                 .Select(r => new StaffRevisionRequestDto(
@@ -699,7 +696,7 @@ public static class FileEndpoints
 
             var revisionRequest = await dbContext.StaffRevisionRequests
                 .Include(r => r.File)
-                .FirstOrDefaultAsync(r => r.Id == id && (r.AssignedStaffId == userId || r.AssignedStaffId == null), cancellationToken);
+                .FirstOrDefaultAsync(r => r.Id == id && r.AssignedStaffId == userId, cancellationToken);
 
             if (revisionRequest is null) return Results.NotFound("Revision request not found.");
             if (revisionRequest.Status != RevisionStatus.Pending && revisionRequest.Status != RevisionStatus.Rejected)

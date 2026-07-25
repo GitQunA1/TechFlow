@@ -24,6 +24,7 @@ import {
   Building2,
   UserCircle,
   Search,
+  Telescope,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -61,7 +62,7 @@ import { useLanguage } from "@/lib/i18n-context";
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ROLE_OPTIONS = ["Admin", "TechLeader", "Production", "Staff"];
+const ROLE_OPTIONS = ["Admin", "TechLeader", "Production", "Staff", "Planning"];
 
 const PIE_COLORS = ["#22c55e", "#f59e0b", "#ef4444"];
 
@@ -71,6 +72,7 @@ function RoleBadge({ role }: { role: string }) {
     TechLeader: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
     Production: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
     Staff: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
+    Planning: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300",
   };
   return (
     <span className={cn("inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold", map[role] ?? "bg-muted text-muted-foreground")}>
@@ -78,6 +80,7 @@ function RoleBadge({ role }: { role: string }) {
       {role === "TechLeader" && <PencilRuler className="w-3 h-3" />}
       {role === "Production" && <HardHat className="w-3 h-3" />}
       {role === "Staff" && <UserCircle className="w-3 h-3" />}
+      {role === "Planning" && <Telescope className="w-3 h-3" />}
       {role}
     </span>
   );

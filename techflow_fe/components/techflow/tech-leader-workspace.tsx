@@ -156,11 +156,15 @@ export default function TechLeaderWorkspace() {
     const offRevision = on("RevisionSubmitted", () => {
       loadPendingRevisions();
     });
+    const offFolder = on("FolderUpdated", () => {
+      setRefreshTrigger(prev => prev + 1);
+    });
     return () => {
       offUpload();
       offConfirm();
       offDraft();
       offRevision();
+      offFolder();
     };
   }, [on, loadPendingDrafts, loadPendingRevisions]);
 

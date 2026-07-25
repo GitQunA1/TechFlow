@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   FolderOpen,
   FolderClosed,
@@ -19,6 +19,7 @@ import {
   UploadCloud,
   AlertCircle,
   UserCog,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,7 @@ import {
   getCategories,
   getFolders,
   createFolder,
+  deleteFolder,
   getMyDrafts,
   getMyRevisionRequests,
   resubmitDraft,
@@ -105,6 +107,12 @@ function FolderNode({ folder, depth = 0, selectedFolderId, onSelect }: FolderNod
   const [expanded, setExpanded] = useState(false);
   const hasChildren = folder.children.length > 0;
   const isSelected = selectedFolderId === folder.id;
+
+  useEffect(() => {
+    if (isSelected) {
+      setExpanded(true);
+    }
+  }, [isSelected]);
 
   return (
     <div>
@@ -318,6 +326,63 @@ function CreateSubfolderModal({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Delete Folder Modal
+// ─────────────────────────────────────────────────────────────────────────────
+
+function DeleteFolderModal({
+  open,
+  onOpenChange,
+  folder,
+  onDeleted,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  folder: FolderTreeDto | null;
+  onDeleted: () => void;
+}) {
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!folder) return;
+    setDeleting(true);
+    try {
+      await deleteFolder(folder.id);
+      toast.success(`Đã xóa thư mục "${folder.name}"`);
+      onDeleted();
+      onOpenChange(false);
+    } catch (e: any) {
+      toast.error("Xóa thư mục thất bại", { description: e.message || "Đã xảy ra lỗi khi xóa" });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (!folder) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Xác nhận xóa thư mục</DialogTitle>
+          <DialogDescription>
+            Bạn có chắc chắn muốn xóa thư mục <strong>{folder.name}</strong> không? Hành động này không thể hoàn tác.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={deleting}>
+            Hủy
+          </Button>
+          <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+            {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            Xóa
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main StaffWorkspace
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -338,6 +403,7 @@ export default function StaffWorkspace() {
   const [resubmitDraft_, setResubmitDraft] = useState<DraftFileDto | null>(null);
   const [revisionToSubmit, setRevisionToSubmit] = useState<StaffRevisionRequestDto | null>(null);
   const [createSubfolderOpen, setCreateSubfolderOpen] = useState(false);
+  const [deleteFolderOpen, setDeleteFolderOpen] = useState(false);
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const refresh = () => setRefreshTrigger((v) => v + 1);
@@ -390,7 +456,8 @@ export default function StaffWorkspace() {
     const off1 = on("DraftApproved", () => loadDrafts());
     const off2 = on("DraftRejected", () => loadDrafts());
     const off3 = on("RevisionRequested", () => loadRevisions());
-    return () => { off1(); off2(); off3(); };
+    const off4 = on("FolderUpdated", () => refresh());
+    return () => { off1(); off2(); off3(); off4(); };
   }, [on, loadDrafts, loadRevisions]);
 
   const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
@@ -398,9 +465,32 @@ export default function StaffWorkspace() {
   const filteredDrafts = selectedFolder
     ? drafts.filter((d) => d.folderId === selectedFolder.id)
     : [];
-  const filteredRevisions = selectedFolder
-    ? revisions.filter((r) => r.folderId === selectedFolder.id)
-    : [];
+  const filteredRevisions = revisions;
+
+  // Pre-calculate version numbers for drafts per folder
+  const draftVersions = useMemo(() => {
+    const counts: Record<number, number> = {};
+    const versions: Record<number, number> = {};
+    // items are sorted newest first. iterate backwards to assign V1, V2...
+    const reversed = [...drafts].reverse();
+    for (const d of reversed) {
+      counts[d.folderId] = (counts[d.folderId] || 0) + 1;
+      versions[d.id] = counts[d.folderId];
+    }
+    return versions;
+  }, [drafts]);
+
+  // Pre-calculate version numbers for revisions per folder
+  const revisionVersions = useMemo(() => {
+    const counts: Record<number, number> = {};
+    const versions: Record<number, number> = {};
+    const reversed = [...revisions].reverse();
+    for (const r of reversed) {
+      counts[r.folderId] = (counts[r.folderId] || 0) + 1;
+      versions[r.id] = counts[r.folderId];
+    }
+    return versions;
+  }, [revisions]);
 
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
@@ -442,19 +532,30 @@ export default function StaffWorkspace() {
                 {selectedCategory?.name}
               </span>
               {selectedFolder && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs gap-1"
-                  onClick={() => setCreateSubfolderOpen(true)}
-                >
-                  <Plus className="w-3 h-3" />
-                  Thư mục con
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs gap-1"
+                    onClick={() => setCreateSubfolderOpen(true)}
+                    disabled={selectedFolder.parentId !== null}
+                  >
+                    <Plus className="w-3 h-3" />
+                    Thư mục con
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="h-7 text-xs gap-1 px-2"
+                    onClick={() => setDeleteFolderOpen(true)}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
               )}
             </div>
             <div className="flex-1 overflow-y-auto p-2">
-              {loadingFolders ? (
+              {loadingFolders && folders.length === 0 ? (
                 <div className="flex items-center justify-center h-20">
                   <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                 </div>
@@ -463,18 +564,20 @@ export default function StaffWorkspace() {
                   Chưa có thư mục
                 </p>
               ) : (
-                folders.map((f) => (
-                  <FolderNode
-                    key={f.id}
-                    folder={f}
-                    selectedFolderId={selectedFolder?.id ?? null}
-                    onSelect={setSelectedFolder}
-                  />
-                ))
+                <div className={cn("transition-opacity", loadingFolders && "opacity-60 pointer-events-none")}>
+                  {folders.map((f) => (
+                    <FolderNode
+                      key={f.id}
+                      folder={f}
+                      selectedFolderId={selectedFolder?.id ?? null}
+                      onSelect={setSelectedFolder}
+                    />
+                  ))}
+                </div>
               )}
             </div>
             {/* Upload button */}
-            {selectedFolder && (
+            {selectedFolder && selectedFolder.children.length === 0 && (
               <div className="p-3 border-t">
                 <Button
                   className="w-full gap-2"
@@ -555,6 +658,7 @@ export default function StaffWorkspace() {
                         <div className="flex items-center gap-2">
                           <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
                           <span className="text-sm font-medium truncate">{draft.fileName}</span>
+                          <Badge variant="secondary" className="px-2 font-mono">v{draftVersions[draft.id]}</Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">
                           {draft.categoryName} · {draft.parentFolderName ? `${draft.parentFolderName} / ` : ""}{draft.folderName}
@@ -615,7 +719,7 @@ export default function StaffWorkspace() {
             ) : filteredRevisions.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
                 <Wrench className="w-10 h-10 opacity-30" />
-                <p className="text-sm">Không có yêu cầu chỉnh sửa nào trong thư mục này.</p>
+                <p className="text-sm">Không có yêu cầu chỉnh sửa nào.</p>
               </div>
             ) : (
               filteredRevisions.map((rev) => (
@@ -629,6 +733,7 @@ export default function StaffWorkspace() {
                         <div className="flex items-center gap-2">
                           <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
                           <span className="text-sm font-medium truncate">{rev.fileName}</span>
+                          <Badge variant="secondary" className="px-2 font-mono">v{revisionVersions[rev.id]}</Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">
                           {rev.categoryName} · {rev.folderName}
@@ -698,7 +803,6 @@ export default function StaffWorkspace() {
           folderId={selectedFolder.id}
           onUploaded={() => {
             loadDrafts();
-            refresh();
           }}
         />
       )}
@@ -730,6 +834,18 @@ export default function StaffWorkspace() {
           categoryId={selectedCategoryId}
           parentFolder={selectedFolder}
           onCreated={refresh}
+        />
+      )}
+
+      {selectedFolder && (
+        <DeleteFolderModal
+          open={deleteFolderOpen}
+          onOpenChange={setDeleteFolderOpen}
+          folder={selectedFolder}
+          onDeleted={() => {
+            setSelectedFolder(null);
+            refresh();
+          }}
         />
       )}
     </div>

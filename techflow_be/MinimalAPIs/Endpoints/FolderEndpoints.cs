@@ -20,7 +20,7 @@ public static class FolderEndpoints
         group.MapGet("/{id:int}/files", GetFolderFilesAsync);
         group.MapPost("", CreateFolderAsync); // Staff, Leader, Admin — role-checked inside handler
         group.MapDelete("/{id:int}", DeleteFolderAsync)
-            .RequireAuthorization(new AuthorizeAttribute { Roles = $"{nameof(UserRole.TechLeader)},{nameof(UserRole.Admin)}" });
+            .RequireAuthorization(new AuthorizeAttribute { Roles = $"{nameof(UserRole.TechLeader)},{nameof(UserRole.Admin)},{nameof(UserRole.Staff)}" });
 
         return app;
     }
@@ -120,6 +120,7 @@ public static class FolderEndpoints
         CreateFolderRequest request,
         ClaimsPrincipal user,
         AppDbContext dbContext,
+        MinimalAPIs.Services.NotificationBroadcaster broadcaster,
         CancellationToken cancellationToken)
     {
         // ── Role check: Staff allowed, but only for subfolders ─────────────
@@ -175,6 +176,11 @@ public static class FolderEndpoints
 
         dbContext.Folders.Add(folder);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        // Notify Admins and Leaders so dashboard auto-refreshes
+        await broadcaster.BroadcastToAdminsAsync("FolderUpdated", new { FolderId = folder.Id });
+        await broadcaster.BroadcastToLeadersAsync("FolderUpdated", new { FolderId = folder.Id });
+        await broadcaster.BroadcastToAllStaffAsync("FolderUpdated", new { FolderId = folder.Id });
 
         return Results.Ok(new CreateFolderResponse(
             Id: folder.Id,
@@ -261,8 +267,10 @@ public static class FolderEndpoints
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        // Notify Admins so dashboard auto-refreshes
-        await broadcaster.BroadcastToAdminsAsync("DataDeleted", new { FolderId = id });
+        // Notify Admins and Leaders so dashboard auto-refreshes
+        await broadcaster.BroadcastToAdminsAsync("FolderUpdated", new { FolderId = id });
+        await broadcaster.BroadcastToLeadersAsync("FolderUpdated", new { FolderId = id });
+        await broadcaster.BroadcastToAllStaffAsync("FolderUpdated", new { FolderId = id });
 
         return Results.NoContent();
     }

@@ -802,8 +802,14 @@ public static class FileEndpoints
 
             dbContext.FileVersions.Add(fileVersion);
 
-            // Resume the file
-            var resumedDepartmentIds = fileRecord.StoppedDepartmentIds.ToList();
+            // Resume the file and distribute to ALL departments that ever received this file
+            var originalDepartmentIds = await dbContext.Distributions
+                .Where(d => d.FileVersion.FileId == fileRecord.Id)
+                .Select(d => d.DepartmentId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            var resumedDepartmentIds = originalDepartmentIds;
             fileRecord.IsStopped = false;
             fileRecord.StoppedDepartmentIds = [];
 

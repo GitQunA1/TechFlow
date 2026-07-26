@@ -28,15 +28,14 @@ public static class NotificationEndpoints
         AppDbContext dbContext,
         CancellationToken cancellationToken)
     {
+        var currentUserId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(currentUserId, out var userId)) return Results.Unauthorized();
+
         var departmentId = GetDepartmentId(user);
-        if (departmentId is null)
-        {
-            return Results.Forbid();
-        }
 
         var notifications = await dbContext.Notifications
             .AsNoTracking()
-            .Where(x => x.DepartmentId == departmentId.Value)
+            .Where(x => (departmentId.HasValue && x.DepartmentId == departmentId.Value) || x.UserId == userId)
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new NotificationDto(
                 x.Id,
@@ -57,13 +56,15 @@ public static class NotificationEndpoints
         AppDbContext dbContext,
         CancellationToken cancellationToken)
     {
-        var departmentId = GetDepartmentId(user);
-        if (departmentId is null)
-        {
-            return Results.Forbid();
-        }
+        var currentUserId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(currentUserId, out var userId)) return Results.Unauthorized();
 
-        var notification = await dbContext.Notifications.FirstOrDefaultAsync(x => x.Id == id && x.DepartmentId == departmentId.Value, cancellationToken);
+        var departmentId = GetDepartmentId(user);
+
+        var notification = await dbContext.Notifications.FirstOrDefaultAsync(
+            x => x.Id == id && ((departmentId.HasValue && x.DepartmentId == departmentId.Value) || x.UserId == userId), 
+            cancellationToken);
+            
         if (notification is null)
         {
             return Results.NotFound();
@@ -80,11 +81,13 @@ public static class NotificationEndpoints
         AppDbContext dbContext,
         CancellationToken cancellationToken)
     {
+        var currentUserId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(currentUserId, out var userId)) return Results.Unauthorized();
+
         var departmentId = GetDepartmentId(user);
-        if (departmentId is null) return Results.Forbid();
 
         await dbContext.Notifications
-            .Where(x => x.DepartmentId == departmentId.Value && !x.IsRead)
+            .Where(x => ((departmentId.HasValue && x.DepartmentId == departmentId.Value) || x.UserId == userId) && !x.IsRead)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.IsRead, true), cancellationToken);
 
         return Results.Ok(new { message = "All marked as read" });
@@ -96,11 +99,13 @@ public static class NotificationEndpoints
         AppDbContext dbContext,
         CancellationToken cancellationToken)
     {
+        var currentUserId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(currentUserId, out var userId)) return Results.Unauthorized();
+
         var departmentId = GetDepartmentId(user);
-        if (departmentId is null) return Results.Forbid();
 
         var rows = await dbContext.Notifications
-            .Where(x => x.Id == id && x.DepartmentId == departmentId.Value)
+            .Where(x => x.Id == id && ((departmentId.HasValue && x.DepartmentId == departmentId.Value) || x.UserId == userId))
             .ExecuteDeleteAsync(cancellationToken);
 
         return rows > 0 ? Results.Ok(new { message = "Deleted" }) : Results.NotFound();
@@ -111,11 +116,13 @@ public static class NotificationEndpoints
         AppDbContext dbContext,
         CancellationToken cancellationToken)
     {
+        var currentUserId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(currentUserId, out var userId)) return Results.Unauthorized();
+
         var departmentId = GetDepartmentId(user);
-        if (departmentId is null) return Results.Forbid();
 
         await dbContext.Notifications
-            .Where(x => x.DepartmentId == departmentId.Value)
+            .Where(x => (departmentId.HasValue && x.DepartmentId == departmentId.Value) || x.UserId == userId)
             .ExecuteDeleteAsync(cancellationToken);
 
         return Results.Ok(new { message = "All deleted" });

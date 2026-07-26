@@ -15,4 +15,5 @@ public class User
     public Department? Department { get; set; }
     public ICollection<Category> LedCategories { get; set; } = new List<Category>();
     public ICollection<FileVersion> UploadedFileVersions { get; set; } = new List<FileVersion>();
+    public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }

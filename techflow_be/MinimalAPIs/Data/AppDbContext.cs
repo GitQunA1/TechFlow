@@ -159,7 +159,14 @@ public class AppDbContext : DbContext
             entity.HasOne(x => x.Department)
                 .WithMany(x => x.Notifications)
                 .HasForeignKey(x => x.DepartmentId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+
+            entity.HasOne(x => x.User)
+                .WithMany(x => x.Notifications)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
 
             entity.HasOne(x => x.TargetFolder)
                 .WithMany()

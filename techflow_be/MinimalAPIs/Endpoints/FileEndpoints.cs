@@ -105,16 +105,33 @@ public static class FileEndpoints
                     CreatedAt = DateTime.UtcNow
                 };
                 dbContext.DraftFiles.Add(draft);
+                
+                if (folder?.Category?.LeaderId != null)
+                {
+                    dbContext.Notifications.Add(new Notification
+                    {
+                        UserId = folder.Category.LeaderId,
+                        Title = "New Draft Uploaded",
+                        Message = $"{currentUser.Username} uploaded a new draft: {originalFileName}.",
+                        TargetFolderId = folderId,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+                
                 await dbContext.SaveChangesAsync(cancellationToken);
 
-                // Notify leaders/admins about new pending draft
-                await broadcaster.BroadcastToLeadersAsync("NewDraftNotification", new
+                // Notify the specific leader and all admins about new pending draft
+                if (folder?.Category?.LeaderId != null)
                 {
-                    DraftId = draft.Id,
-                    draft.FileName,
-                    FolderName = folder?.Name ?? "",
-                    UploadedBy = currentUser.Username
-                });
+                    await broadcaster.BroadcastToUserAsync(folder.Category.LeaderId.Value, "NewDraftNotification", new
+                    {
+                        DraftId = draft.Id,
+                        draft.FileName,
+                        FolderName = folder?.Name ?? "",
+                        UploadedBy = currentUser.Username
+                    });
+                }
+                
                 await broadcaster.BroadcastToAdminsAsync("NewDraftNotification", new
                 {
                     DraftId = draft.Id,
@@ -501,17 +518,33 @@ public static class FileEndpoints
             draft.ReviewedById = null;
             draft.ReviewedAt = null;
 
+            if (draft.Folder?.Category?.LeaderId != null)
+            {
+                dbContext.Notifications.Add(new Notification
+                {
+                    UserId = draft.Folder.Category.LeaderId,
+                    Title = "Draft Resubmitted",
+                    Message = $"{currentUser.Username} resubmitted draft: {originalFileName}.",
+                    TargetFolderId = draft.FolderId,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
             await dbContext.SaveChangesAsync(cancellationToken);
 
-            // Notify leaders
-            await broadcaster.BroadcastToLeadersAsync("NewDraftNotification", new
+            // Notify the specific leader and all admins
+            if (draft.Folder?.Category?.LeaderId != null)
             {
-                DraftId = draft.Id,
-                draft.FileName,
-                FolderName = draft.Folder?.Name ?? "",
-                UploadedBy = currentUser.Username,
-                IsResubmission = true
-            });
+                await broadcaster.BroadcastToUserAsync(draft.Folder.Category.LeaderId.Value, "NewDraftNotification", new
+                {
+                    DraftId = draft.Id,
+                    draft.FileName,
+                    FolderName = draft.Folder?.Name ?? "",
+                    UploadedBy = currentUser.Username,
+                    IsResubmission = true
+                });
+            }
+            
             await broadcaster.BroadcastToAdminsAsync("NewDraftNotification", new
             {
                 DraftId = draft.Id,
@@ -726,6 +759,15 @@ public static class FileEndpoints
             revisionRequest.SubmittedNote = note;
             revisionRequest.Status = RevisionStatus.Submitted;
             revisionRequest.SubmittedAt = DateTime.UtcNow;
+
+            dbContext.Notifications.Add(new Notification
+            {
+                UserId = revisionRequest.RequestedById,
+                Title = "Revision Submitted",
+                Message = $"{currentUser.Username} submitted revision for {revisionRequest.File.FileName}.",
+                TargetFileId = revisionRequest.FileId,
+                CreatedAt = DateTime.UtcNow
+            });
 
             await dbContext.SaveChangesAsync(cancellationToken);
 

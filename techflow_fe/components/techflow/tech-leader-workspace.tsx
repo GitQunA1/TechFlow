@@ -21,6 +21,9 @@ import {
   Search,
   Eye,
   Clock,
+  Bell,
+  Trash2,
+  CheckCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +37,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { UploadModal } from "./upload-modal";
 import { RollbackModal } from "./rollback-modal";
 import { StopModal } from "./stop-modal";
@@ -62,6 +73,12 @@ import {
   DepartmentDto,
   StaffUserDto,
   StaffRevisionRequestDto,
+  NotificationDto,
+  getNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  deleteNotification,
+  deleteAllNotifications,
   API_BASE,
 } from "@/lib/api";
 import { toast } from "sonner";
@@ -138,6 +155,55 @@ export default function TechLeaderWorkspace() {
     getStaffUsers().then(setStaffUsers).catch(console.error);
   }, []);
 
+  const [notifications, setNotifications] = useState<NotificationDto[]>([]);
+  
+  const loadNotifications = useCallback(() => {
+    getNotifications().then(setNotifications).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
+
+  const unreadNotifs = notifications.filter(n => !n.isRead).length;
+
+  const handleReadNotification = async (id: number) => {
+    try {
+      await markNotificationRead(id);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    } catch {
+      toast.error("Failed to mark as read");
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllNotificationsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    } catch {
+      toast.error("Failed to mark all as read");
+    }
+  };
+
+  const handleDeleteNotification = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await deleteNotification(id);
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    } catch {
+      toast.error("Failed to delete notification");
+    }
+  };
+
+  const handleDeleteAllNotifications = async () => {
+    try {
+      await deleteAllNotifications();
+      setNotifications([]);
+    } catch {
+      toast.error("Failed to clear notifications");
+    }
+  };
+
   const { on } = useSignalR({
     role: user?.role,
     userId: user?.userId,
@@ -152,9 +218,11 @@ export default function TechLeaderWorkspace() {
     });
     const offDraft = on("NewDraftNotification", () => {
       loadPendingDrafts();
+      loadNotifications();
     });
     const offRevision = on("RevisionSubmitted", () => {
       loadPendingRevisions();
+      loadNotifications();
     });
     const offFolder = on("FolderUpdated", () => {
       setRefreshTrigger(prev => prev + 1);
@@ -249,6 +317,81 @@ export default function TechLeaderWorkspace() {
           setReviewDraftCtx={setReviewDraftCtx}
           pendingRevisions={pendingRevisions}
           setRevisionReviewCtx={setRevisionReviewCtx}
+          notificationWidget={
+            <DropdownMenu>
+              <DropdownMenuTrigger className="relative h-10 w-10 rounded-full shrink-0 border border-input bg-background hover:bg-accent hover:text-accent-foreground inline-flex items-center justify-center mr-2">
+                <Bell className={cn("w-4 h-4 transition-colors", unreadNotifs > 0 && "text-destructive animate-pulse")} />
+                {unreadNotifs > 0 && (
+                  <div className="absolute -top-1 -right-1 flex h-4 min-w-[16px]">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
+                    <Badge
+                      variant="destructive"
+                      className="relative inline-flex px-1 h-4 text-[10px] items-center justify-center rounded-full"
+                    >
+                      {unreadNotifs}
+                    </Badge>
+                  </div>
+                )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 p-0" sideOffset={8}>
+                <DropdownMenuGroup>
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <DropdownMenuLabel className="p-0">Notifications</DropdownMenuLabel>
+                    {notifications.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={handleMarkAllRead} disabled={unreadNotifs === 0}>
+                          <CheckCheck className="w-3 h-3 mr-1" /> Mark all read
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleDeleteAllNotifications}>
+                          <Trash2 className="w-3 h-3 mr-1" /> Clear all
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  <DropdownMenuSeparator />
+                  <div className="max-h-[60vh] overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-6 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
+                        <Bell className="w-8 h-8 opacity-20" />
+                        No notifications
+                      </div>
+                    ) : (
+                      notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          className={cn("flex flex-col items-start gap-1 p-3 cursor-pointer group relative rounded-sm hover:bg-accent focus:outline-none focus:bg-accent", !n.isRead ? "bg-primary/5" : "")}
+                          onClick={() => {
+                            if (!n.isRead) handleReadNotification(n.id);
+                            if (n.targetFolderId || n.targetFileId) {
+                              window.dispatchEvent(new CustomEvent("NavigateToFolder", {
+                                detail: { folderId: n.targetFolderId, fileId: n.targetFileId }
+                              }));
+                            }
+                          }}
+                        >
+                          <div className="flex items-start justify-between w-full">
+                            <span className={cn("font-medium text-sm", !n.isRead && "text-primary")}>{n.title}</span>
+                            <span className="text-[10px] text-muted-foreground whitespace-nowrap ml-2">
+                              {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-2">{n.message}</p>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-2 top-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                            onClick={(e) => handleDeleteNotification(n.id, e)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          }
         />
       )}
 
@@ -363,6 +506,7 @@ function CategoryWorkspace({
   setReviewDraftCtx,
   pendingRevisions,
   setRevisionReviewCtx,
+  notificationWidget,
 }: {
   category: CategoryDto;
   managed: boolean;
@@ -376,6 +520,7 @@ function CategoryWorkspace({
   setReviewDraftCtx: (ctx: DraftFileDto) => void;
   pendingRevisions: StaffRevisionRequestDto[];
   setRevisionReviewCtx: (ctx: StaffRevisionRequestDto) => void;
+  notificationWidget: React.ReactNode;
 }) {
   const { t } = useLanguage();
   const [folders, setFolders] = useState<FolderTreeDto[]>([]);
@@ -404,7 +549,6 @@ function CategoryWorkspace({
 
   const filteredFolders = filterFolders(folders, folderSearch);
 
-  // We fetch folders
   const loadFolders = () => {
     getFolders(category.id)
       .then(setFolders)
@@ -414,6 +558,43 @@ function CategoryWorkspace({
   useEffect(() => {
     loadFolders();
   }, [category.id, refreshTrigger]);
+
+  useEffect(() => {
+    const handleNavigation = (e: any) => {
+      const { folderId, fileId } = e.detail;
+      if (folderId) {
+        setSelectedFolderId(folderId);
+        
+        // Wait for state update and re-render
+        setTimeout(() => {
+          let el = null;
+          
+          if (fileId) {
+            // Priority 1: Revision item
+            el = document.getElementById(`revision-file-${fileId}`);
+            // Priority 2: Standard file item
+            if (!el) el = document.getElementById(`file-${fileId}`);
+          } else if (folderId) {
+            // Priority 1: Draft item for this folder
+            el = document.getElementById(`draft-folder-${folderId}`);
+            // Priority 2: The folder itself in sidebar
+            if (!el) el = document.getElementById(`folder-${folderId}`);
+          }
+
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+            el.classList.add("ring-4", "ring-primary", "ring-offset-4", "transition-all", "duration-500");
+            setTimeout(() => {
+              el.classList.remove("ring-4", "ring-primary", "ring-offset-4");
+            }, 2500);
+          }
+        }, 300);
+      }
+    };
+    
+    window.addEventListener("NavigateToFolder", handleNavigation);
+    return () => window.removeEventListener("NavigateToFolder", handleNavigation);
+  }, []);
 
   const selectedFolder = findFolderRecursive(folders, selectedFolderId);
 
@@ -432,15 +613,18 @@ function CategoryWorkspace({
             {managed && <Badge variant="secondary" className="bg-primary/10 text-primary">{t("techLeader.yourWorkspace")}</Badge>}
           </div>
         </div>
-        <Button
-          onClick={() => {
-            setNewFolderName("");
-            setCreateOpen(true);
-          }}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          {t("techLeader.createProject")}
-        </Button>
+        <div className="flex items-center">
+          {notificationWidget}
+          <Button
+            onClick={() => {
+              setNewFolderName("");
+              setCreateOpen(true);
+            }}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            {t("techLeader.createProject")}
+          </Button>
+        </div>
       </div>
 
       {/* Split Pane */}
@@ -607,6 +791,7 @@ function FolderTreeNode({
   return (
     <div>
       <div
+        id={`folder-${folder.id}`}
         className={cn(
           "group flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors text-sm",
           isSelected 
@@ -854,6 +1039,7 @@ function FileViewerPane({
             {pendingDrafts.map((draft) => (
               <div
                 key={draft.id}
+                id={`draft-folder-${draft.folderId}`}
                 className="group flex flex-col p-4 text-sm rounded-lg border bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-900/50 transition-all hover:shadow-sm"
               >
                 <div className="flex items-start justify-between w-full gap-4">
@@ -902,6 +1088,7 @@ function FileViewerPane({
             {pendingRevisions.map((rev) => (
               <div
                 key={rev.id}
+                id={`revision-file-${rev.fileId}`}
                 className="group flex flex-col p-4 text-sm rounded-lg border bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/50 transition-all hover:shadow-sm"
               >
                 <div className="flex items-start justify-between w-full gap-4">
@@ -968,6 +1155,7 @@ function FileViewerPane({
               return (
                 <div
                   key={file.fileVersionId}
+                  id={`file-${file.fileId}`}
                   className={cn(
                     "group flex flex-col p-4 text-sm rounded-lg border transition-all hover:shadow-sm",
                     file.isStopped ? "bg-destructive/5 border-destructive/30" : "bg-card hover:border-primary/30"

@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { getDepartments, DepartmentDto, stopFile } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/i18n-context";
 
 interface StopModalProps {
   open: boolean;
@@ -30,6 +31,7 @@ export function StopModal({
   fileName,
   sentToDepartments,
 }: StopModalProps) {
+  const { t } = useLanguage();
   const [selectedDepts, setSelectedDepts] = useState<number[]>([]);
   const [departments, setDepartments] = useState<DepartmentDto[]>([]);
   const [loadingDepts, setLoadingDepts] = useState(true);
@@ -78,16 +80,16 @@ export function StopModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="w-5 h-5" />
-            Emergency Stop
+            {t("modals.emergencyStop.title")}
           </DialogTitle>
           <DialogDescription>
-            Select the departments to stop distribution for <strong className="text-foreground">{fileName}</strong>.
+            {t("modals.emergencyStop.desc")} <strong className="text-foreground">{fileName}</strong>.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-3">
-            <h4 className="text-sm font-medium">Target Departments</h4>
+            <h4 className="text-sm font-medium">{t("modals.emergencyStop.targetDepartments")}</h4>
             {loadingDepts ? (
               <div className="flex justify-center p-4">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -116,14 +118,14 @@ export function StopModal({
               </div>
             )}
             {departments.length > 0 && selectedDepts.length === 0 && (
-              <p className="text-xs text-destructive mt-1">Please select at least one department.</p>
+              <p className="text-xs text-destructive mt-1">{t("modals.emergencyStop.pleaseSelect")}</p>
             )}
           </div>
         </div>
 
         <div className="flex justify-end gap-3 mt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={stopping}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button 
             variant="destructive" 
@@ -139,7 +141,7 @@ export function StopModal({
             ) : (
               <>
                 <OctagonX className="w-4 h-4 mr-2" />
-                Confirm Stop
+                {t("modals.emergencyStop.confirm")}
               </>
             )}
           </Button>

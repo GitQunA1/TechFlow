@@ -9,6 +9,8 @@ import {
   Loader2,
   AlertTriangle,
   CheckCircle2,
+  Check,
+  Save,
   Info,
 } from "lucide-react";
 import {
@@ -24,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { getDepartments, resumeFile, resumeFileWithFile, DepartmentDto } from "@/lib/api";
 import { DepartmentNoteRequest } from "@/lib/types";
 import { toast } from "sonner";
+import { useLanguage } from "@/lib/i18n-context";
 
 interface ResumeModalProps {
   open: boolean;
@@ -46,6 +49,7 @@ export function ResumeModal({
   sentToDepartmentNames,
   uploadedByRole,
 }: ResumeModalProps) {
+  const { t } = useLanguage();
   const isStaffFile = uploadedByRole === "Staff";
   const [tab, setTab] = useState<"simple" | "with-file">("simple");
 
@@ -185,10 +189,10 @@ export function ResumeModal({
         <DialogHeader className="p-6 pb-4 bg-muted/30 border-b shrink-0">
           <DialogTitle className="text-xl flex items-center gap-2">
             <Play className="w-5 h-5 text-emerald-600 fill-current" />
-            Resume File
+            {t("modals.resume.title")}
           </DialogTitle>
           <DialogDescription className="text-base mt-1">
-            Resuming:{" "}
+            {t("modals.resume.resuming")}{" "}
             <span className="font-semibold text-foreground">{fileName}</span>
           </DialogDescription>
         </DialogHeader>
@@ -205,8 +209,8 @@ export function ResumeModal({
             )}
           >
             <CheckCircle2 className="w-4 h-4" />
-            Resume Only
-            <Badge variant="secondary" className="text-[10px] h-4 px-1.5">No file change</Badge>
+            {t("modals.resume.resumeOnly")}
+            <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{t("modals.resume.resumeOnlyDesc")}</Badge>
           </button>
           <button
             onClick={() => setTab("with-file")}
@@ -220,14 +224,14 @@ export function ResumeModal({
             {isStaffFile ? (
               <>
                 <Send className="w-4 h-4" />
-                Send Request to Staff
-                <Badge className="text-[10px] h-4 px-1.5 bg-amber-500/20 text-amber-700 border-0">Staff revision</Badge>
+                {t("modals.resume.sendRequest")}
+                <Badge className="text-[10px] h-4 px-1.5 bg-amber-500/20 text-amber-700 border-0">{t("modals.resume.sendRequestDesc")}</Badge>
               </>
             ) : (
               <>
                 <Upload className="w-4 h-4" />
-                Resume with New File
-                <Badge className="text-[10px] h-4 px-1.5 bg-primary/20 text-primary border-0">New version</Badge>
+                {t("modals.resume.resumeWithFile")}
+                <Badge className="text-[10px] h-4 px-1.5 bg-primary/20 text-primary border-0">{t("modals.resume.newVersion")}</Badge>
               </>
             )}
           </button>
@@ -242,8 +246,8 @@ export function ResumeModal({
               <div className="flex items-start gap-2 p-4 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-900/10 dark:border-amber-800">
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <div className="text-sm text-amber-700 dark:text-amber-400 space-y-1">
-                  <p className="font-medium">This file was originally uploaded by a Staff member.</p>
-                  <p>Sending a request will notify them to revise and re-upload. Once they submit, you can review and approve to resume production.</p>
+                  <p className="font-medium">{t("modals.resume.staffWarning").split(". ")[0]}.</p>
+                  <p>{t("modals.resume.staffWarning").split(". ").slice(1).join(". ")}</p>
                 </div>
               </div>
             </div>
@@ -312,11 +316,11 @@ export function ResumeModal({
             <div>
               <div className="flex items-center justify-between mb-3">
                 <label className="text-sm font-medium">
-                  Department Notes <span className="text-destructive">*</span>
+                  {t("modals.resume.departmentNotes")} <span className="text-destructive">*</span>
                 </label>
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Info className="w-3.5 h-3.5" />
-                  Note required for each department
+                  {t("modals.resume.noteRequired")}
                 </div>
               </div>
 
@@ -348,28 +352,22 @@ export function ResumeModal({
                           </div>
                           {/* Affected Toggle */}
                           <div className="flex items-center gap-1 bg-background rounded-full border p-0.5 shadow-sm">
-                            <button
+                            <Badge
+                              variant={state.isAffected ? "warning" : "secondary"}
+                              className="cursor-pointer"
                               onClick={() => updateNote(dept.id, "isAffected", true)}
-                              className={cn(
-                                "px-3 py-1 rounded-full text-xs font-medium transition-all",
-                                state.isAffected
-                                  ? "bg-amber-500 text-white shadow-sm"
-                                  : "text-muted-foreground hover:text-foreground"
-                              )}
                             >
-                              ⚠ Affected
-                            </button>
-                            <button
+                              {state.isAffected && <AlertTriangle className="w-3 h-3 mr-1" />}
+                              {t("modals.resume.affected")}
+                            </Badge>
+                            <Badge
+                              variant={!state.isAffected ? "default" : "secondary"}
+                              className={cn("cursor-pointer", !state.isAffected && "bg-slate-500 hover:bg-slate-600")}
                               onClick={() => updateNote(dept.id, "isAffected", false)}
-                              className={cn(
-                                "px-3 py-1 rounded-full text-xs font-medium transition-all",
-                                !state.isAffected
-                                  ? "bg-emerald-500 text-white shadow-sm"
-                                  : "text-muted-foreground hover:text-foreground"
-                              )}
                             >
-                              ✓ Not Affected
-                            </button>
+                              {!state.isAffected && <Check className="w-3 h-3 mr-1" />}
+                              {t("modals.resume.notAffected")}
+                            </Badge>
                           </div>
                         </div>
 
@@ -377,11 +375,9 @@ export function ResumeModal({
                         <textarea
                           className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary resize-y"
                           style={{ minHeight: "72px", maxHeight: "200px" }}
-                          placeholder={
-                            state.isAffected
-                              ? "Describe how this department is affected and what actions are needed..."
-                              : "Confirm that this department is not impacted..."
-                          }
+                          placeholder={state.isAffected 
+                            ? t("modals.resume.describeAffected") 
+                            : t("modals.resume.describeNotAffected")}
                           value={state.note}
                           onChange={(e) => updateNote(dept.id, "note", e.target.value)}
                         />
@@ -397,11 +393,11 @@ export function ResumeModal({
         {/* Footer */}
         <div className="p-6 pt-4 bg-muted/10 border-t shrink-0 flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
-            {tab === "with-file" ? `${stoppedDepts.filter((d) => deptNotes[d.id]?.note?.trim()).length}/${stoppedDepts.length} notes filled` : ""}
+            {tab === "with-file" ? (t("modals.resume.notesFilled") as string).replace("{count}", `${stoppedDepts.filter((d) => deptNotes[d.id]?.note?.trim()).length}`).replace("{total}", `${stoppedDepts.length}`) : ""}
           </p>
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting || sendingRequest}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             {tab === "simple" ? (
               <Button
@@ -410,9 +406,9 @@ export function ResumeModal({
                 onClick={handleSimpleResume}
               >
                 {submitting ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Resuming...</>
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t("common.loading")}</>
                 ) : (
-                  <><Play className="w-4 h-4 mr-2 fill-current" /> Resume & Notify</>
+                  <><Play className="w-4 h-4 mr-2 fill-current" /> {t("modals.resume.resumeNotify")}</>
                 )}
               </Button>
             ) : isStaffFile ? (
@@ -422,22 +418,23 @@ export function ResumeModal({
                 onClick={handleSendRevisionRequest}
               >
                 {sendingRequest ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending...</>
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t("common.loading")}</>
                 ) : (
-                  <><Send className="w-4 h-4 mr-2" /> Send Request to Staff</>
+                  <><Send className="w-4 h-4 mr-2" /> {t("modals.resume.sendRequest")}</>
                 )}
               </Button>
             ) : (
               <Button
-                className="min-w-[160px]"
-                disabled={!isValid || !selectedFile || !!fileError || submitting}
+                disabled={!isValid || submitting}
                 onClick={handleResumeWithFile}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 {submitting ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Đang lưu...</>
+                  <div className="w-4 h-4 mr-2 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <><FolderOpen className="w-4 h-4 mr-2" /> Lưu & Resume</>
+                  <Save className="w-4 h-4 mr-2" />
                 )}
+                {t("modals.resume.saveAndResume")}
               </Button>
             )}
           </div>

@@ -57,39 +57,42 @@ import type {
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useSignalR } from "@/lib/use-signalr";
+import { useLanguage } from "@/lib/i18n-context";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Status Badges
 // ─────────────────────────────────────────────────────────────────────────────
 
 function DraftStatusBadge({ status }: { status: DraftFileDto["status"] }) {
+  const { t } = useLanguage();
   if (status === "Pending")
     return (
       <Badge variant="outline" className="border-amber-500 text-amber-600 dark:text-amber-400 gap-1">
         <Clock className="w-3 h-3" />
-        Chờ duyệt
+        {t("staff.status.draftPending")}
       </Badge>
     );
   if (status === "Approved")
     return (
       <Badge variant="outline" className="border-green-500 text-green-600 dark:text-green-400 gap-1">
         <CheckCircle2 className="w-3 h-3" />
-        Đã duyệt
+        {t("staff.status.draftApproved")}
       </Badge>
     );
   return (
     <Badge variant="outline" className="border-red-500 text-red-600 dark:text-red-400 gap-1">
       <XCircle className="w-3 h-3" />
-      Bị từ chối
+      {t("staff.status.draftRejected")}
     </Badge>
   );
 }
 
 function RevisionStatusBadge({ status }: { status: "Pending" | "Submitted" | "Approved" | "Rejected" }) {
-  if (status === "Pending") return <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50 gap-1.5"><Clock className="w-3.5 h-3.5" /> Chờ upload</Badge>;
-  if (status === "Submitted") return <Badge variant="outline" className="border-blue-500 text-blue-600 bg-blue-50 gap-1.5"><Upload className="w-3.5 h-3.5" /> Đã upload, chờ duyệt</Badge>;
-  if (status === "Rejected") return <Badge variant="outline" className="border-destructive text-destructive bg-destructive/10 gap-1.5"><AlertCircle className="w-3.5 h-3.5" /> Bị từ chối</Badge>;
-  return <Badge variant="outline" className="border-green-500 text-green-600 bg-green-50 gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> Đã duyệt</Badge>;
+  const { t } = useLanguage();
+  if (status === "Pending") return <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50 gap-1.5"><Clock className="w-3.5 h-3.5" /> {t("staff.revisionStatus.pending")}</Badge>;
+  if (status === "Submitted") return <Badge variant="outline" className="border-blue-500 text-blue-600 bg-blue-50 gap-1.5"><Upload className="w-3.5 h-3.5" /> {t("staff.revisionStatus.submitted")}</Badge>;
+  if (status === "Rejected") return <Badge variant="outline" className="border-destructive text-destructive bg-destructive/10 gap-1.5"><AlertCircle className="w-3.5 h-3.5" /> {t("staff.revisionStatus.rejected")}</Badge>;
+  return <Badge variant="outline" className="border-green-500 text-green-600 bg-green-50 gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> {t("staff.revisionStatus.approved")}</Badge>;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -178,6 +181,7 @@ function ResubmitDraftModal({
   draft: DraftFileDto | null;
   onResubmitted: () => void;
 }) {
+  const { t } = useLanguage();
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -188,7 +192,7 @@ function ResubmitDraftModal({
     if (!f) return;
     const ext = "." + f.name.split(".").pop()?.toLowerCase();
     if (!VALID.includes(ext)) {
-      setError("Chỉ cho phép .png, .jpg, .jpeg, .pdf, .dwg");
+      setError(t("modals.resubmit.invalidExt"));
       setFile(null);
     } else {
       setError(null);
@@ -203,11 +207,11 @@ function ResubmitDraftModal({
       const fd = new FormData();
       fd.append("file", file);
       await resubmitDraft(draft.id, fd);
-      toast.success("Draft đã được gửi lại! Chờ Leader xem xét.");
+      toast.success(t("modals.resubmit.success"));
       onResubmitted();
       onOpenChange(false);
     } catch (e: any) {
-      toast.error("Gửi lại thất bại", { description: e.message });
+      toast.error(t("modals.resubmit.error"), { description: e.message });
     } finally {
       setSubmitting(false);
     }
@@ -219,18 +223,18 @@ function ResubmitDraftModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Tải lại file bị từ chối</DialogTitle>
+          <DialogTitle>{t("modals.resubmit.title")}</DialogTitle>
           <DialogDescription>
-            Tải lên phiên bản mới cho <strong>{draft.fileName}</strong>
+            {t("modals.resubmit.desc")} <strong>{draft.fileName}</strong>
           </DialogDescription>
         </DialogHeader>
         {draft.rejectReason && (
           <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-300">
-            <strong>Lý do từ chối:</strong> {draft.rejectReason}
+            <strong>{t("modals.resubmit.rejectReason")}</strong> {draft.rejectReason}
           </div>
         )}
         <div className="space-y-2">
-          <Label htmlFor="resubmit-file">Chọn file mới</Label>
+          <Label htmlFor="resubmit-file">{t("modals.resubmit.selectNewFile")}</Label>
           <Input
             id="resubmit-file"
             type="file"
@@ -242,11 +246,11 @@ function ResubmitDraftModal({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-            Hủy
+            {t("modals.resubmit.cancel")}
           </Button>
           <Button onClick={handleSubmit} disabled={!file || submitting}>
             {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Gửi lại
+            {t("modals.resubmit.resubmit")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -271,6 +275,7 @@ function CreateSubfolderModal({
   parentFolder: FolderTreeDto | null;
   onCreated: () => void;
 }) {
+  const { t } = useLanguage();
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -279,12 +284,12 @@ function CreateSubfolderModal({
     setSubmitting(true);
     try {
       await createFolder({ name: name.trim(), categoryId, parentId: parentFolder.id });
-      toast.success(`Đã tạo thư mục "${name}"`);
+      toast.success(`${t("modals.createSubfolder.success")} "${name}"`);
       setName("");
       onCreated();
       onOpenChange(false);
     } catch (e: any) {
-      toast.error("Tạo thư mục thất bại", { description: e.message });
+      toast.error(t("modals.createSubfolder.error"), { description: e.message });
     } finally {
       setSubmitting(false);
     }
@@ -294,16 +299,16 @@ function CreateSubfolderModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Tạo thư mục con</DialogTitle>
+          <DialogTitle>{t("modals.createSubfolder.title")}</DialogTitle>
           <DialogDescription>
-            Tạo thư mục con trong: <strong>{parentFolder?.name}</strong>
+            {t("modals.createSubfolder.desc")} <strong>{parentFolder?.name}</strong>
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          <Label htmlFor="subfolder-name">Tên thư mục</Label>
+          <Label htmlFor="subfolder-name">{t("modals.createSubfolder.folderName")}</Label>
           <Input
             id="subfolder-name"
-            placeholder="Nhập tên thư mục..."
+            placeholder={t("modals.createSubfolder.placeholder")}
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleCreate()}
@@ -313,11 +318,11 @@ function CreateSubfolderModal({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-            Hủy
+            {t("modals.createSubfolder.cancel")}
           </Button>
           <Button onClick={handleCreate} disabled={!name.trim() || submitting}>
             {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Tạo
+            {t("modals.createSubfolder.create")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -340,6 +345,7 @@ function DeleteFolderModal({
   folder: FolderTreeDto | null;
   onDeleted: () => void;
 }) {
+  const { t } = useLanguage();
   const [deleting, setDeleting] = useState(false);
 
   const handleDelete = async () => {
@@ -347,11 +353,11 @@ function DeleteFolderModal({
     setDeleting(true);
     try {
       await deleteFolder(folder.id);
-      toast.success(`Đã xóa thư mục "${folder.name}"`);
+      toast.success(`${t("modals.deleteFolder.success")} "${folder.name}"`);
       onDeleted();
       onOpenChange(false);
     } catch (e: any) {
-      toast.error("Xóa thư mục thất bại", { description: e.message || "Đã xảy ra lỗi khi xóa" });
+      toast.error(t("modals.deleteFolder.error"), { description: e.message || "Failed" });
     } finally {
       setDeleting(false);
     }
@@ -363,18 +369,18 @@ function DeleteFolderModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Xác nhận xóa thư mục</DialogTitle>
+          <DialogTitle>{t("modals.deleteFolder.title")}</DialogTitle>
           <DialogDescription>
-            Bạn có chắc chắn muốn xóa thư mục <strong>{folder.name}</strong> không? Hành động này không thể hoàn tác.
+            {t("modals.deleteFolder.desc")} <strong>{folder.name}</strong> {t("modals.deleteFolder.warning")}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={deleting}>
-            Hủy
+            {t("modals.deleteFolder.cancel")}
           </Button>
           <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
             {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Xóa
+            {t("modals.deleteFolder.delete")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -388,6 +394,7 @@ function DeleteFolderModal({
 
 export default function StaffWorkspace() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [categories, setCategories] = useState<CategoryDto[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [folders, setFolders] = useState<FolderTreeDto[]>([]);
@@ -499,7 +506,7 @@ export default function StaffWorkspace() {
         <div className="p-4 border-b">
           <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
             <UserCog className="w-4 h-4" />
-            Danh mục
+            {t("staff.categories")}
           </div>
         </div>
         <div className="p-2 space-y-1">
@@ -541,7 +548,7 @@ export default function StaffWorkspace() {
                     disabled={selectedFolder.parentId !== null}
                   >
                     <Plus className="w-3 h-3" />
-                    Thư mục con
+                    {t("staff.subfolder")}
                   </Button>
                   <Button
                     size="sm"
@@ -561,7 +568,7 @@ export default function StaffWorkspace() {
                 </div>
               ) : folders.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
-                  Chưa có thư mục
+                  {t("staff.noFolders")}
                 </p>
               ) : (
                 <div className={cn("transition-opacity", loadingFolders && "opacity-60 pointer-events-none")}>
@@ -585,14 +592,14 @@ export default function StaffWorkspace() {
                   onClick={() => setUploadOpen(true)}
                 >
                   <Upload className="w-4 h-4" />
-                  Upload File
+                  {t("staff.uploadFile")}
                 </Button>
               </div>
             )}
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-sm text-muted-foreground">Chọn danh mục để xem thư mục</p>
+            <p className="text-sm text-muted-foreground">{t("staff.selectCategoryToViewFolders")}</p>
           </div>
         )}
       </div>
@@ -602,7 +609,7 @@ export default function StaffWorkspace() {
         {!selectedFolder ? (
           <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-muted/10 p-8 text-center space-y-3">
             <FolderOpen className="w-12 h-12 opacity-20" />
-            <p>Vui lòng chọn một thư mục từ danh sách bên trái để xem các bản nháp và yêu cầu chỉnh sửa.</p>
+            <p>{t("staff.pleaseSelectFolder")}</p>
           </div>
         ) : (
           <Tabs defaultValue="drafts" className="flex flex-col h-full">
@@ -610,7 +617,7 @@ export default function StaffWorkspace() {
               <TabsList className="mt-2">
                 <TabsTrigger value="drafts" className="gap-2">
                   <FileText className="w-4 h-4" />
-                  Bản nháp của tôi
+                  {t("staff.myDrafts")}
                   {filteredDrafts.filter((d) => d.status === "Pending").length > 0 && (
                     <Badge className="ml-1 h-5 px-1.5 text-xs bg-amber-500">
                       {filteredDrafts.filter((d) => d.status === "Pending").length}
@@ -619,7 +626,7 @@ export default function StaffWorkspace() {
                 </TabsTrigger>
                 <TabsTrigger value="revisions" className="gap-2">
                   <Wrench className="w-4 h-4" />
-                  Yêu cầu chỉnh sửa
+                  {t("staff.revisionTasks")}
                   {filteredRevisions.filter((r) => r.status === "Pending" || r.status === "Rejected").length > 0 && (
                     <Badge className="ml-1 h-5 px-1.5 text-xs bg-red-500">
                       {filteredRevisions.filter((r) => r.status === "Pending" || r.status === "Rejected").length}
@@ -633,7 +640,7 @@ export default function StaffWorkspace() {
             <TabsContent value="drafts" className="flex-1 overflow-y-auto p-4 space-y-3">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  Bản nháp của tôi ({filteredDrafts.length})
+                  {t("staff.myDrafts")} ({filteredDrafts.length})
                 </h2>
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={loadDrafts}>
                 <RefreshCw className={cn("w-3.5 h-3.5", loadingDrafts && "animate-spin")} />
@@ -647,7 +654,7 @@ export default function StaffWorkspace() {
             ) : filteredDrafts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
                 <FileText className="w-10 h-10 opacity-30" />
-                <p className="text-sm">Chưa có bản nháp nào trong thư mục này. Upload file để bắt đầu!</p>
+                <p className="text-sm">{t("staff.noDraftsInFolder")}</p>
               </div>
             ) : (
               filteredDrafts.map((draft) => (
@@ -676,7 +683,7 @@ export default function StaffWorkspace() {
                             rel="noopener noreferrer"
                             className="text-xs text-primary hover:underline"
                           >
-                            Xem file
+                            {t("staff.viewFile")}
                           </a>
                         )}
                       </div>
@@ -690,7 +697,7 @@ export default function StaffWorkspace() {
                             onClick={() => setResubmitDraft(draft)}
                           >
                             <RefreshCw className="w-3 h-3" />
-                            Tải lại
+                            {t("staff.reupload")}
                           </Button>
                         )}
                       </div>
@@ -705,7 +712,7 @@ export default function StaffWorkspace() {
           <TabsContent value="revisions" className="flex-1 overflow-y-auto p-4 space-y-3">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Yêu cầu chỉnh sửa từ Leader ({filteredRevisions.length})
+                {t("staff.revisionTasksFromLeader")} ({filteredRevisions.length})
               </h2>
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={loadRevisions}>
                 <RefreshCw className={cn("w-3.5 h-3.5", loadingRevisions && "animate-spin")} />
@@ -719,7 +726,7 @@ export default function StaffWorkspace() {
             ) : filteredRevisions.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
                 <Wrench className="w-10 h-10 opacity-30" />
-                <p className="text-sm">Không có yêu cầu chỉnh sửa nào.</p>
+                <p className="text-sm">{t("staff.noRevisions")}</p>
               </div>
             ) : (
               filteredRevisions.map((rev) => (
@@ -739,7 +746,7 @@ export default function StaffWorkspace() {
                           {rev.categoryName} · {rev.folderName}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Yêu cầu bởi: <span className="font-medium">{rev.requestedBy}</span>
+                          {t("staff.requestedBy")} <span className="font-medium">{rev.requestedBy}</span>
                         </p>
                       </div>
                       <RevisionStatusBadge status={rev.status} />
@@ -749,7 +756,7 @@ export default function StaffWorkspace() {
                     {rev.status === "Rejected" && rev.message && (
                       <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3">
                         <p className="text-xs font-semibold text-destructive uppercase tracking-wide mb-1">
-                          Lý do từ chối
+                          {t("staff.rejectReasonTitle")}
                         </p>
                         <p className="text-sm text-destructive/90 whitespace-pre-wrap break-words">
                           {rev.message}
@@ -764,14 +771,14 @@ export default function StaffWorkspace() {
                         onClick={() => setRevisionToSubmit(rev)}
                       >
                         <Upload className="w-3.5 h-3.5" />
-                        Upload file đã chỉnh sửa
+                        {t("staff.uploadRevised")}
                       </Button>
                     )}
 
                     {rev.status === "Submitted" && rev.submittedFileName && (
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" />
-                        Đã gửi: {rev.submittedFileName}
+                        {t("staff.submitted")} {rev.submittedFileName}
                         {rev.submittedFileUrl && (
                           <a
                             href={`${API_BASE}${rev.submittedFileUrl}`}
@@ -779,7 +786,7 @@ export default function StaffWorkspace() {
                             rel="noopener noreferrer"
                             className="text-primary hover:underline"
                           >
-                            Xem
+                            {t("staff.view")}
                           </a>
                         )}
                       </div>

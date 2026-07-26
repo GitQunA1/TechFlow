@@ -583,9 +583,10 @@ function CategoryWorkspace({
 
           if (el) {
             el.scrollIntoView({ behavior: "smooth", block: "center" });
-            el.classList.add("ring-4", "ring-primary", "ring-offset-4", "transition-all", "duration-500");
+            // Add z-index to ensure ring is visible above other elements
+            el.classList.add("ring-4", "ring-primary", "ring-offset-4", "relative", "z-10", "transition-all", "duration-500");
             setTimeout(() => {
-              el.classList.remove("ring-4", "ring-primary", "ring-offset-4");
+              el.classList.remove("ring-4", "ring-primary", "ring-offset-4", "relative", "z-10");
             }, 2500);
           }
         }, 300);
@@ -1083,7 +1084,7 @@ function FileViewerPane({
           <div className="space-y-3">
             <h4 className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-2">
               <Upload className="w-4 h-4" />
-              Awaiting Revision Approval ({pendingRevisions.length})
+              {t("techLeader.awaitingRevisionApproval")} ({pendingRevisions.length})
             </h4>
             {pendingRevisions.map((rev) => (
               <div
@@ -1102,12 +1103,13 @@ function FileViewerPane({
                           {rev.fileName}
                         </span>
                         <Badge variant="outline" className="border-blue-500 text-blue-600 dark:text-blue-400 gap-1 bg-blue-500/10">
-                          Revision Submitted
+                          {t("techLeader.revisionSubmitted")}
                         </Badge>
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        By <span className="font-medium text-foreground">{rev.assignedStaffName ?? "Staff"}</span>
-                        {rev.submittedAt && ` · ${new Date(rev.submittedAt).toLocaleString()}`}
+                      <div className="text-xs text-blue-700/70 dark:text-blue-300/70 flex items-center gap-2">
+                        <span>By <span className="font-medium text-blue-800 dark:text-blue-200">{rev.assignedStaffName ?? "Staff"}</span></span>
+                        <span>&middot;</span>
+                        <span>{rev.submittedAt && new Date(rev.submittedAt).toLocaleString()}</span>
                       </div>
                       {rev.submittedNote && (
                         <p className="mt-1 text-xs text-blue-700 dark:text-blue-300 bg-blue-100/60 dark:bg-blue-900/30 rounded px-2 py-1">
@@ -1123,7 +1125,7 @@ function FileViewerPane({
                       onClick={() => setRevisionReviewCtx(rev)}
                     >
                       <Eye className="w-3.5 h-3.5" />
-                      Review
+                      {t("common.review")}
                     </Button>
                   </div>
                 </div>
@@ -1185,8 +1187,8 @@ function FileViewerPane({
                             </span>
                           )}
                           <Badge variant="secondary" className="px-2 font-mono">v{file.versionNumber}</Badge>
-                          {isNew && <Badge className="bg-emerald-500 hover:bg-emerald-600 border-none text-white shadow-sm animate-pulse">{t("techLeader.new")}</Badge>}
-                          {(isNew && file.isStopped) && <Badge variant="destructive" className="animate-flash shadow-sm">{t("techLeader.stop")}</Badge>}
+                          {isNew && <Badge className="bg-emerald-500 hover:bg-emerald-600 border-none text-white shadow-sm animate-pulse">{t("common.new")}</Badge>}
+                          {file.isStopped && <Badge variant="destructive" className="animate-flash shadow-sm">{t("common.stop")}</Badge>}
                         </div>
                         <div className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
                           {t("techLeader.uploadedOn")} {new Date(file.createdAt).toLocaleString()}
@@ -1203,7 +1205,7 @@ function FileViewerPane({
                             className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-200"
                             onClick={() => setResumeCtx({ fileId: file.fileId, fileName: file.fileName, sentToDepartments: file.sentToDepartments || [], uploadedByRole: file.uploadedByRole })}
                           >
-                            <Play className="w-4 h-4 mr-2 fill-current" /> Resume
+                            <Play className="w-4 h-4 mr-2 fill-current" /> {t("common.resume")}
                           </Button>
                         ) : (
                           <Button

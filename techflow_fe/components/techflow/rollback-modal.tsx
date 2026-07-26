@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { rollbackVersion } from "@/lib/api";
 import { toast } from "sonner";
+import { useLanguage } from "@/lib/i18n-context";
 
 interface RollbackModalProps {
   open: boolean;
@@ -31,6 +32,7 @@ export function RollbackModal({
   fileName,
   versionNumber,
 }: RollbackModalProps) {
+  const { t } = useLanguage();
   const [changeReason, setChangeReason] = useState("");
   const [uploading, setUploading] = useState(false);
 
@@ -65,12 +67,12 @@ export function RollbackModal({
         <DialogHeader className="p-6 pb-4 bg-muted/30 border-b shrink-0">
           <DialogTitle className="text-xl flex items-center gap-2">
             <History className="w-5 h-5 text-primary" />
-            Rollback Version
+            {t("modals.rollback.title")}
           </DialogTitle>
           <DialogDescription className="text-base mt-2">
-            Rolling back{" "}
+            {t("modals.rollback.rollingBack")}{" "}
             <span className="font-semibold text-foreground">{fileName}</span>{" "}
-            to <Badge variant="secondary">v{versionNumber}</Badge>
+            {t("modals.rollback.to")} <Badge variant="secondary">v{versionNumber}</Badge>
           </DialogDescription>
         </DialogHeader>
 
@@ -80,27 +82,25 @@ export function RollbackModal({
           <div className="flex items-start gap-3 p-3.5 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-900/10 dark:border-amber-800">
             <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <p className="text-sm text-amber-700 dark:text-amber-400">
-              A new version will be created using the file from{" "}
-              <strong>v{versionNumber}</strong>. All departments that previously
-              received this file will be required to re-confirm.
+              {t("modals.rollback.warning").replace("{version}", `v${versionNumber}`)}
             </p>
           </div>
 
           {/* Reason Input */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
-              Reason for Rollback{" "}
+              {t("modals.rollback.reasonLabel")}{" "}
               <span className="text-destructive">*</span>
             </label>
             <textarea
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary resize-y"
               style={{ minHeight: "96px", maxHeight: "240px" }}
-              placeholder="Describe why you are rolling back to this version..."
+              placeholder={t("modals.rollback.reasonPlaceholder") as string}
               value={changeReason}
               onChange={(e) => setChangeReason(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              This reason will be sent to all departments as a change note.
+              {t("modals.rollback.reasonHelp")}
             </p>
           </div>
         </div>
@@ -112,7 +112,7 @@ export function RollbackModal({
             onClick={() => onOpenChange(false)}
             disabled={uploading}
           >
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             disabled={!changeReason.trim() || uploading}
@@ -121,12 +121,11 @@ export function RollbackModal({
           >
             {uploading ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Rolling
-                back...
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t("common.loading")}
               </>
             ) : (
               <>
-                <History className="w-4 h-4 mr-2" /> Confirm Rollback
+                <History className="w-4 h-4 mr-2" /> {t("modals.rollback.confirm")}
               </>
             )}
           </Button>

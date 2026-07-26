@@ -42,8 +42,13 @@ export const translations: Record<Language, Dictionary> = {
       uploader: "Uploader",
       upload: "Upload",
       confirmAct: "Confirm",
+      confirmAct: "Confirm",
       pending: "Pending",
       confirmed: "Confirmed",
+      review: "Review",
+      new: "NEW",
+      stop: "Stop",
+      resume: "Resume",
     },
     header: {
       title: "TechFlow",
@@ -159,6 +164,28 @@ export const translations: Record<Language, Dictionary> = {
       changeNotes: "Change Notes",
       departmentNote: "Department Note"
     },
+    planning: {
+      title: "Planning View",
+      subtitle: "Browse all categories and view file versions. Read-only access.",
+      loadingCategories: "Loading categories...",
+      owner: "Owner",
+      unassigned: "Unassigned",
+      clickToBrowse: "Click to browse folders and files in this category.",
+      backToCategories: "Back to Categories",
+      viewOnly: "View Only",
+      folderStructure: "Folder Structure",
+      filterFolders: "Filter folders...",
+      noFoldersYet: "No folders yet.",
+      noFoldersFound: "No folders found for",
+      noFolderSelected: "No Folder Selected",
+      selectFolderToView: "Select a folder from the left panel to view its files.",
+      filesInFolder: "file(s) in this folder",
+      subfolders: "subfolder(s)",
+      loadingFiles: "Loading files...",
+      folderEmpty: "This folder is empty.",
+      files: "Files",
+      distributedTo: "Distributed to:",
+    },
     modals: {
       upload: {
         title: "Upload New Drawing",
@@ -185,20 +212,43 @@ export const translations: Record<Language, Dictionary> = {
         success: "Version rolled back successfully"
       }
     },
-    staff: {
-      workspace: "Staff Workspace",
-      uploadDrafts: "Upload & Drafts",
-      revisionTasks: "Revision Tasks",
-      history: "History",
-      draftPending: "Pending Approval",
-      draftApproved: "Approved",
-      draftRejected: "Rejected",
-      reupload: "Re-upload",
-      uploadRevised: "Upload Revised File",
-      revisionMessage: "Leader's Note",
-      noDrafts: "No drafts yet. Upload a file to get started!",
-      noRevisions: "No revision tasks."
-    },
+      staff: {
+        workspace: "Staff Workspace",
+        uploadDrafts: "Upload & Drafts",
+        revisionTasks: "Revision Tasks",
+        history: "History",
+        draftPending: "Pending Approval",
+        draftApproved: "Approved",
+        draftRejected: "Rejected",
+        reupload: "Re-upload",
+        uploadRevised: "Upload Revised File",
+        revisionMessage: "Leader's Note",
+        noDrafts: "No drafts available. Upload a file to get started!",
+        noRevisions: "No revision tasks.",
+        awaitingRevisionApproval: "Awaiting Revision Approval",
+        revisionSubmitted: "Revision Submitted",
+        filesInThisDirectory: "Files in this directory",
+        categories: "Categories",
+        selectCategoryToViewFolders: "Select a category to view folders",
+        subfolder: "Subfolder",
+        noFolders: "No folders",
+        uploadFile: "Upload File",
+        pleaseSelectFolder: "Please select a folder from the left list to view drafts and revision tasks.",
+        myDrafts: "My Drafts",
+        noDraftsInFolder: "No drafts in this folder. Upload a file to get started!",
+        viewFile: "View file",
+        revisionTasksFromLeader: "Revision Tasks from Leader",
+        requestedBy: "Requested by:",
+        rejectReasonTitle: "Reject Reason",
+        submitted: "Submitted:",
+        view: "View",
+        revisionStatus: {
+          pending: "Pending Upload",
+          submitted: "Uploaded, pending approval",
+          rejected: "Rejected",
+          approved: "Approved"
+        }
+      },
     leader: {
       pendingDrafts: "Pending Drafts",
       approveDraft: "Approve",
@@ -206,6 +256,67 @@ export const translations: Record<Language, Dictionary> = {
       rejectReason: "Reject Reason",
       requestRevision: "Request Staff Revision",
       sendToStaff: "Send to Staff"
+    },
+    modals: {
+      emergencyStop: {
+        title: "Emergency Stop",
+        desc: "Select the departments to stop distribution for",
+        targetDepartments: "Target Departments",
+        pleaseSelect: "Please select at least one department.",
+        confirm: "Confirm Stop"
+      },
+      rollback: {
+        title: "Rollback Version",
+        rollingBack: "Rolling back",
+        to: "to",
+        warning: "A new version will be created using the file from {version}. All departments that previously received this file will be required to re-confirm.",
+        reasonLabel: "Reason for Rollback",
+        reasonPlaceholder: "Describe why you are rolling back to this version...",
+        reasonHelp: "This reason will be sent to all departments as a change note.",
+        confirm: "Confirm Rollback"
+      },
+      resume: {
+        title: "Resume File",
+        resuming: "Resuming:",
+        resumeOnly: "Resume Only",
+        resumeOnlyDesc: "No file change",
+        sendRequest: "Send Request to Staff",
+        sendRequestDesc: "Staff revision",
+        staffWarning: "This file was originally uploaded by a Staff member. Sending a request will notify them to revise and re-upload. Once they submit, you can review and approve to resume production.",
+        resumeNotify: "Resume & Notify",
+        resumeNotify: "Resume & Notify",
+        notesFilled: "{count}/{total} notes filled"
+      },
+      resubmit: {
+        title: "Re-upload Rejected File",
+        desc: "Upload a new version for",
+        rejectReason: "Reject reason:",
+        selectNewFile: "Select new file",
+        cancel: "Cancel",
+        resubmit: "Resubmit",
+        success: "Draft resubmitted! Waiting for Leader's review.",
+        error: "Failed to resubmit",
+        invalidExt: "Only .png, .jpg, .jpeg, .pdf, .dwg are allowed"
+      },
+      createSubfolder: {
+        title: "Create Subfolder",
+        desc: "Create subfolder in:",
+        folderName: "Folder name",
+        placeholder: "Enter folder name...",
+        cancel: "Cancel",
+        create: "Create",
+        success: "Folder created:",
+        error: "Failed to create folder"
+      },
+      deleteFolder: {
+        title: "Confirm Delete",
+        desc: "Are you sure you want to delete the folder",
+        warning: "This action cannot be undone.",
+        cancel: "Cancel",
+        delete: "Delete",
+        success: "Folder deleted:",
+        error: "Failed to delete folder"
+      }
     }
   },
   vi: {
@@ -245,8 +356,12 @@ export const translations: Record<Language, Dictionary> = {
       uploader: "Người tải lên",
       upload: "Tải lên",
       confirmAct: "Xác nhận",
-      pending: "Chờ xác nhận",
+      pending: "Đang chờ",
       confirmed: "Đã xác nhận",
+      review: "Kiểm tra",
+      new: "MỚI",
+      stop: "Dừng",
+      resume: "Resume",
     },
     header: {
       title: "TechFlow",
@@ -362,6 +477,28 @@ export const translations: Record<Language, Dictionary> = {
       changeNotes: "Ghi chú Thay đổi",
       departmentNote: "Ghi chú Phòng ban"
     },
+    planning: {
+      title: "Giao diện Planning",
+      subtitle: "Duyệt tất cả các danh mục và xem phiên bản file. Quyền truy cập chỉ xem.",
+      loadingCategories: "Đang tải danh mục...",
+      owner: "Người phụ trách",
+      unassigned: "Chưa phân công",
+      clickToBrowse: "Nhấn vào để xem thư mục và file trong danh mục này.",
+      backToCategories: "Trở về Danh mục",
+      viewOnly: "Chỉ Xem",
+      folderStructure: "Cấu trúc thư mục",
+      filterFolders: "Lọc thư mục...",
+      noFoldersYet: "Chưa có thư mục nào.",
+      noFoldersFound: "Không tìm thấy thư mục cho",
+      noFolderSelected: "Chưa chọn thư mục",
+      selectFolderToView: "Chọn một thư mục ở bảng bên trái để xem file.",
+      filesInFolder: "file trong thư mục này",
+      subfolders: "thư mục con",
+      loadingFiles: "Đang tải file...",
+      folderEmpty: "Thư mục này trống.",
+      files: "File",
+      distributedTo: "Đã phân phối đến:",
+    },
     modals: {
       upload: {
         title: "Tải lên Bản vẽ mới",
@@ -370,38 +507,49 @@ export const translations: Record<Language, Dictionary> = {
         departments: "Phòng ban đích",
         success: "Tải file lên thành công"
       },
-      resume: {
-        title: "Phục hồi File",
-        simpleResume: "Phục hồi (Không đổi File)",
-        newRevision: "Bản sửa đổi mới (Tải File)",
-        success: "Phục hồi file thành công"
-      },
-      stop: {
-        title: "Dừng phân phối File",
-        reason: "Lý do dừng",
-        departments: "Phòng ban bị ảnh hưởng",
-        success: "Đã dừng phân phối file"
-      },
       rollback: {
         title: "Khôi phục phiên bản",
         warning: "Bạn có chắc muốn khôi phục lại phiên bản này?",
         success: "Khôi phục phiên bản thành công"
       }
     },
-    staff: {
-      workspace: "Không gian làm việc Staff",
-      uploadDrafts: "Tải lên & Bản nháp",
-      revisionTasks: "Yêu cầu chỉnh sửa",
-      history: "Lịch sử",
-      draftPending: "Chờ duyệt",
-      draftApproved: "Đã duyệt",
-      draftRejected: "Bị từ chối",
-      reupload: "Tải lại",
-      uploadRevised: "Tải file đã chỉnh sửa",
-      revisionMessage: "Nội dung yêu cầu",
-      noDrafts: "Chưa có bản nháp nào. Upload file để bắt đầu!",
-      noRevisions: "Không có yêu cầu chỉnh sửa nào."
-    },
+      staff: {
+        workspace: "Không gian làm việc Staff",
+        uploadDrafts: "Tải lên & Bản nháp",
+        revisionTasks: "Yêu cầu chỉnh sửa",
+        history: "Lịch sử",
+        draftPending: "Chờ duyệt",
+        draftApproved: "Đã duyệt",
+        draftRejected: "Bị từ chối",
+        reupload: "Tải lại",
+        uploadRevised: "Tải file đã chỉnh sửa",
+        revisionMessage: "Nội dung yêu cầu",
+        noDrafts: "Chưa có bản nháp nào. Upload file để bắt đầu!",
+        noRevisions: "Không có yêu cầu chỉnh sửa nào.",
+        awaitingRevisionApproval: "Chờ Duyệt Chỉnh Sửa",
+        revisionSubmitted: "Đã Nộp Bản Chỉnh Sửa",
+        filesInThisDirectory: "FILE TRONG THƯ MỤC NÀY",
+        categories: "Danh mục",
+        selectCategoryToViewFolders: "Chọn danh mục để xem thư mục",
+        subfolder: "Thư mục con",
+        noFolders: "Chưa có thư mục",
+        uploadFile: "Upload File",
+        pleaseSelectFolder: "Vui lòng chọn một thư mục từ danh sách bên trái để xem các bản nháp và yêu cầu chỉnh sửa.",
+        myDrafts: "Bản nháp của tôi",
+        noDraftsInFolder: "Chưa có bản nháp nào trong thư mục này. Upload file để bắt đầu!",
+        viewFile: "Xem file",
+        revisionTasksFromLeader: "Yêu cầu chỉnh sửa từ Leader",
+        requestedBy: "Yêu cầu bởi:",
+        rejectReasonTitle: "Lý do từ chối",
+        submitted: "Đã gửi:",
+        view: "Xem",
+        revisionStatus: {
+          pending: "Chờ upload",
+          submitted: "Đã upload, chờ duyệt",
+          rejected: "Bị từ chối",
+          approved: "Đã duyệt"
+        }
+      },
     leader: {
       pendingDrafts: "Bản nháp chờ duyệt",
       approveDraft: "Duyệt",
@@ -409,6 +557,67 @@ export const translations: Record<Language, Dictionary> = {
       rejectReason: "Lý do từ chối",
       requestRevision: "Yêu cầu Staff chỉnh sửa",
       sendToStaff: "Gửi cho Staff"
+    },
+    modals: {
+      emergencyStop: {
+        title: "Dừng Khẩn Cấp",
+        desc: "Chọn các phòng ban cần dừng phân phối file",
+        targetDepartments: "Phòng ban mục tiêu",
+        pleaseSelect: "Vui lòng chọn ít nhất một phòng ban.",
+        confirm: "Xác nhận Dừng"
+      },
+      rollback: {
+        title: "Khôi Phục Phiên Bản (Rollback)",
+        rollingBack: "Đang khôi phục",
+        to: "về",
+        warning: "Một phiên bản mới sẽ được tạo dựa trên file từ {version}. Tất cả các phòng ban đã nhận file này trước đó sẽ phải xác nhận lại.",
+        reasonLabel: "Lý do khôi phục",
+        reasonPlaceholder: "Mô tả lý do bạn muốn khôi phục về phiên bản này...",
+        reasonHelp: "Lý do này sẽ được gửi đến tất cả các phòng ban dưới dạng ghi chú thay đổi.",
+        confirm: "Xác nhận Khôi phục"
+      },
+      resume: {
+        title: "Tiếp Tục File (Resume)",
+        resuming: "Đang tiếp tục:",
+        resumeOnly: "Chỉ Tiếp Tục",
+        resumeOnlyDesc: "Không đổi file",
+        sendRequest: "Gửi Yêu Cầu Cho Staff",
+        sendRequestDesc: "Staff chỉnh sửa",
+        staffWarning: "File này ban đầu được tải lên bởi một Staff. Gửi yêu cầu sẽ thông báo cho họ để chỉnh sửa và tải lại. Sau khi họ nộp, bạn có thể duyệt để tiếp tục.",
+        resumeNotify: "Tiếp Tục & Thông Báo",
+        resumeNotify: "Tiếp Tục & Thông Báo",
+        notesFilled: "Đã điền {count}/{total} ghi chú"
+      },
+      resubmit: {
+        title: "Tải lại file bị từ chối",
+        desc: "Tải lên phiên bản mới cho",
+        rejectReason: "Lý do từ chối:",
+        selectNewFile: "Chọn file mới",
+        cancel: "Hủy",
+        resubmit: "Gửi lại",
+        success: "Draft đã được gửi lại! Chờ Leader xem xét.",
+        error: "Gửi lại thất bại",
+        invalidExt: "Chỉ cho phép .png, .jpg, .jpeg, .pdf, .dwg"
+      },
+      createSubfolder: {
+        title: "Tạo thư mục con",
+        desc: "Tạo thư mục con trong:",
+        folderName: "Tên thư mục",
+        placeholder: "Nhập tên thư mục...",
+        cancel: "Hủy",
+        create: "Tạo",
+        success: "Đã tạo thư mục",
+        error: "Tạo thư mục thất bại"
+      },
+      deleteFolder: {
+        title: "Xác nhận xóa thư mục",
+        desc: "Bạn có chắc chắn muốn xóa thư mục",
+        warning: "không? Hành động này không thể hoàn tác.",
+        cancel: "Hủy",
+        delete: "Xóa",
+        success: "Đã xóa thư mục",
+        error: "Xóa thư mục thất bại"
+      }
     }
   }
 };

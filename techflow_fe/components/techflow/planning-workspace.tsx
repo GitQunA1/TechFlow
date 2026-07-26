@@ -28,6 +28,7 @@ import {
   API_BASE,
 } from "@/lib/api";
 import { toast } from "sonner";
+import { useLanguage } from "@/lib/i18n-context";
 
 // ── Helper ──────────────────────────────────────────────────────────────────
 
@@ -46,6 +47,7 @@ function findFolderRecursive(folders: FolderTreeDto[], targetId: number | null):
 // ── Root Component ───────────────────────────────────────────────────────────
 
 export default function PlanningWorkspace() {
+  const { t } = useLanguage();
   const [categories, setCategories] = useState<CategoryDto[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [refreshTrigger] = useState(0);
@@ -64,15 +66,15 @@ export default function PlanningWorkspace() {
       {!selectedCategoryId && (
         <>
           <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight mb-2">Planning View</h1>
+            <h1 className="text-3xl font-bold tracking-tight mb-2">{t("planning.title")}</h1>
             <p className="text-muted-foreground">
-              Browse all categories and view file versions. Read-only access.
+              {t("planning.subtitle")}
             </p>
           </div>
 
           {categories.length === 0 ? (
             <div className="flex h-40 items-center justify-center text-muted-foreground">
-              Loading categories...
+              {t("planning.loadingCategories")}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -88,12 +90,12 @@ export default function PlanningWorkspace() {
                     </div>
                     <CardTitle className="text-xl">{cat.name}</CardTitle>
                     <CardDescription className="text-sm mt-1">
-                      Owner: {cat.leaderUsername || "Unassigned"}
+                      {t("planning.owner")}: {cat.leaderUsername || t("planning.unassigned")}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground">
-                      Click to browse folders and files in this category.
+                      {t("planning.clickToBrowse")}
                     </p>
                   </CardContent>
                 </Card>
@@ -126,6 +128,7 @@ function PlanningCategoryView({
   onBack: () => void;
   refreshTrigger: number;
 }) {
+  const { t } = useLanguage();
   const [folders, setFolders] = useState<FolderTreeDto[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
   const [folderSearch, setFolderSearch] = useState("");
@@ -157,12 +160,12 @@ function PlanningCategoryView({
       <div className="flex items-center gap-4 mb-6 pb-4 border-b">
         <Button variant="ghost" className="pl-0 hover:bg-transparent hover:text-primary transition-colors" onClick={onBack}>
           <ArrowLeft className="w-5 h-5 mr-2" />
-          Back to Categories
+          {t("planning.backToCategories")}
         </Button>
         <div className="h-6 w-px bg-border hidden sm:block" />
         <div className="flex items-center gap-2">
           <h2 className="text-2xl font-bold">{category.name}</h2>
-          <Badge variant="outline" className="text-xs">View Only</Badge>
+          <Badge variant="outline" className="text-xs">{t("planning.viewOnly")}</Badge>
         </div>
       </div>
 
@@ -173,13 +176,13 @@ function PlanningCategoryView({
           <div className="p-4 bg-muted/30 border-b flex flex-col gap-3 font-medium text-sm text-muted-foreground">
             <div className="flex items-center">
               <FolderClosed className="w-4 h-4 mr-2" />
-              Folder Structure
+              {t("planning.folderStructure")}
             </div>
             <div className="relative">
               <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
               <input
                 className="flex h-8 w-full rounded-md border border-input bg-background pl-8 pr-3 py-1 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-                placeholder="Filter folders..."
+                placeholder={t("planning.filterFolders")}
                 value={folderSearch}
                 onChange={(e) => setFolderSearch(e.target.value)}
               />
@@ -187,10 +190,10 @@ function PlanningCategoryView({
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-1">
             {folders.length === 0 ? (
-              <div className="text-center p-6 text-sm text-muted-foreground italic">No folders yet.</div>
+              <div className="text-center p-6 text-sm text-muted-foreground italic">{t("planning.noFoldersYet")}</div>
             ) : filteredFolders.length === 0 ? (
               <div className="text-center p-6 text-sm text-muted-foreground italic">
-                No folders found for "{folderSearch}".
+                {t("planning.noFoldersFound")} "{folderSearch}".
               </div>
             ) : (
               filteredFolders.map((folder) => (
@@ -214,8 +217,8 @@ function PlanningCategoryView({
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8 text-center bg-muted/5">
               <FolderDot className="w-16 h-16 mb-4 opacity-20" />
-              <h3 className="text-lg font-medium text-foreground mb-1">No Folder Selected</h3>
-              <p className="text-sm">Select a folder from the left panel to view its files.</p>
+              <h3 className="text-lg font-medium text-foreground mb-1">{t("planning.noFolderSelected")}</h3>
+              <p className="text-sm">{t("planning.selectFolderToView")}</p>
             </div>
           )}
         </div>
@@ -307,6 +310,7 @@ function PlanningFileViewer({
   folder: FolderTreeDto;
   refreshTrigger: number;
 }) {
+  const { t } = useLanguage();
   const [files, setFiles] = useState<FolderFileDto[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -330,9 +334,9 @@ function PlanningFileViewer({
             {folder.name}
           </h3>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {files.length} file{files.length !== 1 ? "s" : ""} in this folder
+            {files.length} {t("planning.filesInFolder")}
             {folder.children && folder.children.length > 0 &&
-              ` • ${folder.children.length} subfolder${folder.children.length !== 1 ? "s" : ""}`}
+              ` • ${folder.children.length} ${t("planning.subfolders")}`}
           </p>
         </div>
       </div>
@@ -341,17 +345,17 @@ function PlanningFileViewer({
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
         {loading ? (
           <div className="flex-1 flex items-center justify-center text-muted-foreground min-h-[200px]">
-            Loading files...
+            {t("planning.loadingFiles")}
           </div>
         ) : files.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground border-2 border-dashed rounded-xl p-12 min-h-[200px]">
             <FileText className="w-12 h-12 mb-4 opacity-20" />
-            <p>This folder is empty.</p>
+            <p>{t("planning.folderEmpty")}</p>
           </div>
         ) : (
           <div className="space-y-3">
             <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              Files ({files.length})
+              {t("planning.files")} ({files.length})
             </h4>
             {files.map((file) => {
               const isNew = new Date(file.createdAt).getTime() === maxCreatedAt && maxCreatedAt > 0;
@@ -391,14 +395,14 @@ function PlanningFileViewer({
                           )}
                           <Badge variant="secondary" className="px-2 font-mono">v{file.versionNumber}</Badge>
                           {isNew && !file.isStopped && (
-                            <Badge className="bg-emerald-500 hover:bg-emerald-600 border-none text-white shadow-sm animate-pulse">New</Badge>
+                            <Badge className="bg-emerald-500 hover:bg-emerald-600 border-none text-white shadow-sm animate-pulse">{t("common.new")}</Badge>
                           )}
                           {isNew && file.isStopped && (
-                            <Badge variant="destructive" className="shadow-sm">Stopped</Badge>
+                            <Badge variant="destructive" className="shadow-sm">{t("common.stop")}</Badge>
                           )}
                         </div>
                         <div className="text-sm text-muted-foreground mt-1">
-                          Uploaded on {new Date(file.createdAt).toLocaleString()}
+                          {t("techLeader.uploadedOn")} {new Date(file.createdAt).toLocaleString()}
                         </div>
                       </div>
                     </div>
@@ -407,7 +411,7 @@ function PlanningFileViewer({
                   {/* Distribution Status */}
                   {!file.isStopped && file.sentToDepartments && file.sentToDepartments.length > 0 && (
                     <div className="mt-4 pt-4 border-t flex flex-wrap items-center gap-2">
-                      <p className="text-xs font-medium text-muted-foreground">Distributed to:</p>
+                      <p className="text-xs font-medium text-muted-foreground">{t("planning.distributedTo")}</p>
                       <div className="flex flex-wrap items-center gap-2">
                         {file.sentToDepartments.map((dept: string) => {
                           const isConfirmed = file.confirmedByDepartments?.includes(dept);
@@ -423,7 +427,7 @@ function PlanningFileViewer({
                               )}
                             >
                               <div className={cn("w-1.5 h-1.5 rounded-full mr-1.5", isConfirmed ? "bg-emerald-500" : "bg-amber-500")} />
-                              {dept} {isConfirmed ? "Confirmed" : "Pending"}
+                              {dept} {isConfirmed ? t("common.confirmed") : t("common.pending")}
                             </Badge>
                           );
                         })}

@@ -428,10 +428,10 @@ export default function ProductionWorkspace() {
           />
         </div>
         <DropdownMenu>
-          <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline" }), "w-full md:w-[180px] justify-between")}>
+          <DropdownMenuTrigger className={cn(buttonVariants({ variant: "outline" }), "w-full md:w-auto md:min-w-[180px] justify-between")}>
             {t("common.status")}: <span className="capitalize ml-2 font-semibold text-primary">{statusFilter === "all" ? t("common.allStatuses") : t("common." + statusFilter.toLowerCase())}</span>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-[180px]">
+          <DropdownMenuContent className="min-w-[200px]">
             <DropdownMenuGroup>
               <DropdownMenuLabel>{t("common.status")}</DropdownMenuLabel>
             </DropdownMenuGroup>

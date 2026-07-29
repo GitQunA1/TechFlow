@@ -145,6 +145,8 @@ export const translations: Record<Language, Dictionary> = {
       stop: "Stop",
       rollback: "Rollback",
       history: "History",
+      awaitingRevisionApproval: "AWAITING REVISION APPROVAL",
+      revisionSubmitted: "Revision Submitted",
     },
     production: {
       title: "Production Workspace",
@@ -458,6 +460,8 @@ export const translations: Record<Language, Dictionary> = {
       stop: "Dừng",
       rollback: "Khôi phục",
       history: "Lịch sử",
+      awaitingRevisionApproval: "CHỜ DUYỆT CHỈNH SỬA",
+      revisionSubmitted: "Đã Nộp Bản Chỉnh Sửa",
     },
     production: {
       title: "Không gian Production",

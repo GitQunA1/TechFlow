@@ -24,6 +24,7 @@ import {
   Bell,
   Trash2,
   CheckCheck,
+  Folder,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -1057,8 +1058,13 @@ function FileViewerPane({
                           Draft
                         </Badge>
                       </div>
-                      <div className="text-sm text-muted-foreground flex items-center gap-1.5">
-                        Uploaded by <span className="font-medium text-foreground">{draft.uploadedBy}</span> on {new Date(draft.createdAt).toLocaleString()}
+                      <div className="text-sm text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                        <span>Uploaded by <span className="font-medium text-foreground">{draft.uploadedBy}</span> on {new Date(draft.createdAt).toLocaleString()}</span>
+                        <span className="text-muted-foreground/40">&bull;</span>
+                        <span className="flex items-center gap-1">
+                          <Folder className="w-3.5 h-3.5" />
+                          {draft.categoryName} &rsaquo; {draft.parentFolderName ? `${draft.parentFolderName} \u203A ` : ""}{draft.folderName}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -1106,10 +1112,15 @@ function FileViewerPane({
                           {t("techLeader.revisionSubmitted")}
                         </Badge>
                       </div>
-                      <div className="text-xs text-blue-700/70 dark:text-blue-300/70 flex items-center gap-2">
+                      <div className="text-xs text-blue-700/70 dark:text-blue-300/70 flex items-center gap-2 flex-wrap">
                         <span>By <span className="font-medium text-blue-800 dark:text-blue-200">{rev.assignedStaffName ?? "Staff"}</span></span>
                         <span>&middot;</span>
                         <span>{rev.submittedAt && new Date(rev.submittedAt).toLocaleString()}</span>
+                        <span>&middot;</span>
+                        <span className="flex items-center gap-1">
+                          <Folder className="w-3 h-3" />
+                          {rev.categoryName} &rsaquo; {rev.folderName}
+                        </span>
                       </div>
                       {rev.submittedNote && (
                         <p className="mt-1 text-xs text-blue-700 dark:text-blue-300 bg-blue-100/60 dark:bg-blue-900/30 rounded px-2 py-1">

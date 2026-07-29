@@ -464,7 +464,9 @@ export default function StaffWorkspace() {
     const off2 = on("DraftRejected", () => loadDrafts());
     const off3 = on("RevisionRequested", () => loadRevisions());
     const off4 = on("FolderUpdated", () => refresh());
-    return () => { off1(); off2(); off3(); off4(); };
+    const off5 = on("RevisionApproved", () => loadRevisions());
+    const off6 = on("RevisionRejected", () => loadRevisions());
+    return () => { off1(); off2(); off3(); off4(); off5(); off6(); };
   }, [on, loadDrafts, loadRevisions]);
 
   const selectedCategory = categories.find((c) => c.id === selectedCategoryId);

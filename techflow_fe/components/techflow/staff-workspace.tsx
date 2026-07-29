@@ -69,20 +69,20 @@ function DraftStatusBadge({ status }: { status: DraftFileDto["status"] }) {
     return (
       <Badge variant="outline" className="border-amber-500 text-amber-600 dark:text-amber-400 gap-1">
         <Clock className="w-3 h-3" />
-        {t("staff.status.draftPending")}
+        {t("staff.draftPending")}
       </Badge>
     );
   if (status === "Approved")
     return (
       <Badge variant="outline" className="border-green-500 text-green-600 dark:text-green-400 gap-1">
         <CheckCircle2 className="w-3 h-3" />
-        {t("staff.status.draftApproved")}
+        {t("staff.draftApproved")}
       </Badge>
     );
   return (
     <Badge variant="outline" className="border-red-500 text-red-600 dark:text-red-400 gap-1">
       <XCircle className="w-3 h-3" />
-      {t("staff.status.draftRejected")}
+      {t("staff.draftRejected")}
     </Badge>
   );
 }

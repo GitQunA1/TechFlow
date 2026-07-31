@@ -35,6 +35,7 @@ public static class FileEndpoints
             ClaimsPrincipal user,
             AppDbContext dbContext,
             NotificationBroadcaster broadcaster,
+            IWebHostEnvironment env,
             CancellationToken cancellationToken) =>
         {
             // ── Validation ────────────────────────────────────────────────
@@ -70,7 +71,8 @@ public static class FileEndpoints
             var currentUser = await dbContext.Users.FirstAsync(x => x.Id == userId, cancellationToken);
 
             // ── Save physical file ────────────────────────────────────────
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+            var webRoot = env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            var uploadsFolder = Path.Combine(webRoot, "uploads");
             if (!Directory.Exists(uploadsFolder))
                 Directory.CreateDirectory(uploadsFolder);
 
@@ -474,6 +476,7 @@ public static class FileEndpoints
             ClaimsPrincipal user,
             AppDbContext dbContext,
             NotificationBroadcaster broadcaster,
+            IWebHostEnvironment env,
             CancellationToken cancellationToken) =>
         {
             var currentUserId = user.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -497,7 +500,8 @@ public static class FileEndpoints
                 return Results.BadRequest("Only .png, .jpg, .jpeg, .pdf, and .dwg files are allowed.");
 
             // Save new file
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+            var webRoot = env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            var uploadsFolder = Path.Combine(webRoot, "uploads");
             if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
             var originalFileName = Path.GetFileName(file.FileName);
@@ -717,6 +721,7 @@ public static class FileEndpoints
             ClaimsPrincipal user,
             AppDbContext dbContext,
             NotificationBroadcaster broadcaster,
+            IWebHostEnvironment env,
             CancellationToken cancellationToken) =>
         {
             var currentUserId = user.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -740,7 +745,8 @@ public static class FileEndpoints
                 return Results.BadRequest("Only .png, .jpg, .jpeg, .pdf, and .dwg files are allowed.");
 
             // Save physical file
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+            var webRoot = env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            var uploadsFolder = Path.Combine(webRoot, "uploads");
             if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
             var originalFileName = Path.GetFileName(file.FileName);
@@ -982,6 +988,7 @@ public static class FileEndpoints
             ClaimsPrincipal user,
             AppDbContext dbContext,
             NotificationBroadcaster broadcaster,
+            IWebHostEnvironment env,
             CancellationToken cancellationToken) =>
         {
             var currentUserId = user.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -1010,7 +1017,8 @@ public static class FileEndpoints
                 return Results.BadRequest("At least one department note is required.");
 
             // ── Save physical file ────────────────────────────────────────
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+            var webRoot = env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            var uploadsFolder = Path.Combine(webRoot, "uploads");
             if (!Directory.Exists(uploadsFolder))
                 Directory.CreateDirectory(uploadsFolder);
 

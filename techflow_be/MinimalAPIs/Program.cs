@@ -143,4 +143,13 @@ app.MapAdminEndpoints();
 // SignalR hub — no auth required, clients connect via anonymous WebSocket
 app.MapHub<NotificationHub>("/hubs/notifications");
 
+// Endpoint debug đường dẫn
+app.MapGet("/api/debug/paths", (IWebHostEnvironment env) => new
+{
+    CurrentDirectory = Directory.GetCurrentDirectory(),
+    BaseDirectory = AppContext.BaseDirectory,
+    WebRootPath = env.WebRootPath,
+    UploadsFolder = Path.Combine(env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "uploads")
+});
+
 app.Run();

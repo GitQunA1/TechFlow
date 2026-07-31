@@ -36,6 +36,12 @@ jobs:
           dotnet restore
           dotnet publish -c Release -o out
           copy /Y "C:\TechFlow_Secrets\appsettings.json" "%CD%\out\appsettings.json"
+          
+          echo "Bảo vệ thư mục uploads bằng cách tạo Link ra ngoài Workspace..."
+          if not exist "C:\TechFlow_Data\uploads" mkdir "C:\TechFlow_Data\uploads"
+          if not exist "out\wwwroot" mkdir "out\wwwroot"
+          if exist "out\wwwroot\uploads" rmdir "out\wwwroot\uploads"
+          mklink /J "out\wwwroot\uploads" "C:\TechFlow_Data\uploads"
         shell: cmd
 
       - name: Bước 4.1 - Dọn dẹp tiến trình cũ

@@ -21,8 +21,6 @@ public static class FileEndpoints
         return ext is ".png" or ".jpg" or ".jpeg" or ".pdf" or ".dwg";
     }
 
-    private const string BasePath = @"D:\Technical Drawing\";
-
     public static IEndpointRouteBuilder MapFileEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/files")

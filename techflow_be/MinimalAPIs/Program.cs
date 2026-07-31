@@ -128,6 +128,25 @@ app.UseStaticFiles(new StaticFileOptions
 // Enable CORS before auth middleware
 app.UseCors("NextJsDev");
 
+// Global exception handler to prevent CORS strip and return actual error
+app.UseExceptionHandler(exceptionHandlerApp =>
+{
+    exceptionHandlerApp.Run(async context =>
+    {
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        
+        var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
+        var exception = exceptionHandlerPathFeature?.Error;
+        
+        await context.Response.WriteAsJsonAsync(new 
+        { 
+            Error = exception?.Message, 
+            StackTrace = exception?.StackTrace 
+        });
+    });
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 

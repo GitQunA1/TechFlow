@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   ArrowLeft,
   ChevronDown,
@@ -323,6 +323,15 @@ function PlanningFileViewer({
   }, [folder.id, refreshTrigger]);
 
   const maxCreatedAt = files.length > 0 ? Math.max(...files.map((f) => new Date(f.createdAt).getTime())) : 0;
+  const maxVersionByFileId = useMemo(() => {
+    const map = new Map<number, number>();
+    files.forEach(f => {
+      if (!map.has(f.fileId) || f.versionNumber > map.get(f.fileId)!) {
+        map.set(f.fileId, f.versionNumber);
+      }
+    });
+    return map;
+  }, [files]);
 
   return (
     <div className="flex flex-col h-full animate-in fade-in">
@@ -358,6 +367,7 @@ function PlanningFileViewer({
               {t("planning.files")} ({files.length})
             </h4>
             {files.map((file) => {
+              const isLatest = file.versionNumber === maxVersionByFileId.get(file.fileId);
               const isNew = new Date(file.createdAt).getTime() === maxCreatedAt && maxCreatedAt > 0;
               return (
                 <div
@@ -377,14 +387,17 @@ function PlanningFileViewer({
                           {file.fileUrl ? (
                             <button
                               onClick={() => {
-                                if (!file.fileUrl) return;
+                                if (!file.fileUrl || !isLatest) return;
                                 const url = API_BASE.replace(/\/$/, "") + file.fileUrl;
                                 window.open(url, "_blank");
                               }}
+                              disabled={!isLatest}
                               className={cn(
-                                "truncate font-semibold text-base hover:underline hover:text-primary transition-colors text-left",
-                                isNew && file.isStopped && "text-destructive line-through"
+                                "truncate font-semibold text-base transition-colors text-left outline-none",
+                                isLatest ? "hover:underline hover:text-primary cursor-pointer" : "text-muted-foreground cursor-not-allowed opacity-60",
+                                (isNew && file.isStopped) && "text-destructive line-through"
                               )}
+                              title={!isLatest ? "You can only view the latest version of this file." : file.fileName}
                             >
                               {file.fileName}
                             </button>

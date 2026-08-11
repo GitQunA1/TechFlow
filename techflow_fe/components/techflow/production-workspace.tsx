@@ -595,8 +595,12 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
                   <div className="flex items-center gap-2 mb-1.5 min-w-0">
                     <button
                       onClick={handleView}
-                      className="truncate font-semibold text-left leading-none hover:underline hover:text-primary transition-colors block outline-none"
-                      title={file.fileName}
+                      disabled={!isNew}
+                      className={cn(
+                        "truncate font-semibold text-left leading-none transition-colors block outline-none",
+                        isNew ? "hover:underline hover:text-primary cursor-pointer" : "text-muted-foreground cursor-not-allowed opacity-60"
+                      )}
+                      title={!isNew ? "You can only view the latest version of this file." : file.fileName}
                     >
                       {file.fileName}
                     </button>

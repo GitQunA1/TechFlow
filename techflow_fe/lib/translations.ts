@@ -188,32 +188,6 @@ export const translations: Record<Language, Dictionary> = {
       files: "Files",
       distributedTo: "Distributed to:",
     },
-    modals: {
-      upload: {
-        title: "Upload New Drawing",
-        selectFile: "Select File",
-        selectFolder: "Select Folder",
-        departments: "Target Departments",
-        success: "File uploaded successfully"
-      },
-      resume: {
-        title: "Resume File",
-        simpleResume: "Simple Resume (No File Change)",
-        newRevision: "New Revision (Upload File)",
-        success: "File resumed successfully"
-      },
-      stop: {
-        title: "Stop File Distribution",
-        reason: "Stop Reason",
-        departments: "Affected Departments",
-        success: "File distribution stopped"
-      },
-      rollback: {
-        title: "Rollback Version",
-        warning: "Are you sure you want to rollback to this version?",
-        success: "Version rolled back successfully"
-      }
-    },
       staff: {
         workspace: "Staff Workspace",
         uploadDrafts: "Upload & Drafts",
@@ -260,6 +234,19 @@ export const translations: Record<Language, Dictionary> = {
       sendToStaff: "Send to Staff"
     },
     modals: {
+      upload: {
+        title: "Upload New Drawing",
+        selectFile: "Select File",
+        selectFolder: "Select Folder",
+        departments: "Target Departments",
+        success: "File uploaded successfully"
+      },
+      stop: {
+        title: "Stop File Distribution",
+        reason: "Stop Reason",
+        departments: "Affected Departments",
+        success: "File distribution stopped"
+      },
       emergencyStop: {
         title: "Emergency Stop",
         desc: "Select the departments to stop distribution for",
@@ -282,10 +269,18 @@ export const translations: Record<Language, Dictionary> = {
         resuming: "Resuming:",
         resumeOnly: "Resume Only",
         resumeOnlyDesc: "No file change",
+        resumeWithFile: "Resume with File",
+        newVersion: "New Version",
+        departmentNotes: "Department Notes",
+        noteRequired: "(Note required)",
+        affected: "Affected",
+        notAffected: "Not Affected",
+        describeAffected: "Describe what changed...",
+        describeNotAffected: "No changes...",
+        saveAndResume: "Save & Resume",
         sendRequest: "Send Request to Staff",
         sendRequestDesc: "Staff revision",
         staffWarning: "This file was originally uploaded by a Staff member. Sending a request will notify them to revise and re-upload. Once they submit, you can review and approve to resume production.",
-        resumeNotify: "Resume & Notify",
         resumeNotify: "Resume & Notify",
         notesFilled: "{count}/{total} notes filled"
       },
@@ -503,20 +498,6 @@ export const translations: Record<Language, Dictionary> = {
       files: "File",
       distributedTo: "Đã phân phối đến:",
     },
-    modals: {
-      upload: {
-        title: "Tải lên Bản vẽ mới",
-        selectFile: "Chọn File",
-        selectFolder: "Chọn Thư mục",
-        departments: "Phòng ban đích",
-        success: "Tải file lên thành công"
-      },
-      rollback: {
-        title: "Khôi phục phiên bản",
-        warning: "Bạn có chắc muốn khôi phục lại phiên bản này?",
-        success: "Khôi phục phiên bản thành công"
-      }
-    },
       staff: {
         workspace: "Không gian làm việc Staff",
         uploadDrafts: "Tải lên & Bản nháp",
@@ -563,6 +544,19 @@ export const translations: Record<Language, Dictionary> = {
       sendToStaff: "Gửi cho Staff"
     },
     modals: {
+      upload: {
+        title: "Tải lên Bản vẽ mới",
+        selectFile: "Chọn File",
+        selectFolder: "Chọn Thư mục",
+        departments: "Phòng ban đích",
+        success: "Tải file lên thành công"
+      },
+      stop: {
+        title: "Dừng phân phối file",
+        reason: "Lý do dừng",
+        departments: "Phòng ban ảnh hưởng",
+        success: "Đã dừng phân phối file"
+      },
       emergencyStop: {
         title: "Dừng Khẩn Cấp",
         desc: "Chọn các phòng ban cần dừng phân phối file",
@@ -585,10 +579,18 @@ export const translations: Record<Language, Dictionary> = {
         resuming: "Đang tiếp tục:",
         resumeOnly: "Chỉ Tiếp Tục",
         resumeOnlyDesc: "Không đổi file",
+        resumeWithFile: "Tiếp tục với file mới",
+        newVersion: "Phiên bản mới",
+        departmentNotes: "Ghi chú cho phòng ban",
+        noteRequired: "(Bắt buộc)",
+        affected: "Bị ảnh hưởng",
+        notAffected: "Không bị ảnh hưởng",
+        describeAffected: "Mô tả thay đổi...",
+        describeNotAffected: "Không có thay đổi...",
+        saveAndResume: "Lưu & Tiếp tục",
         sendRequest: "Gửi Yêu Cầu Cho Staff",
         sendRequestDesc: "Staff chỉnh sửa",
         staffWarning: "File này ban đầu được tải lên bởi một Staff. Gửi yêu cầu sẽ thông báo cho họ để chỉnh sửa và tải lại. Sau khi họ nộp, bạn có thể duyệt để tiếp tục.",
-        resumeNotify: "Tiếp Tục & Thông Báo",
         resumeNotify: "Tiếp Tục & Thông Báo",
         notesFilled: "Đã điền {count}/{total} ghi chú"
       },

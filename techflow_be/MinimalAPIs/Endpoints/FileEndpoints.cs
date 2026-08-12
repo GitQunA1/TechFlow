@@ -886,27 +886,40 @@ public static class FileEndpoints
 
             if (resumedDepartmentIds.Any())
             {
-                var distributions = resumedDepartmentIds.Select(deptId => new Distribution
+                var distributions = resumedDepartmentIds.Select(deptId =>
                 {
-                    FileVersionId = fileVersion.Id,
-                    DepartmentId = deptId,
-                    Status = DistributionStatus.Pending,
-                    DeadlineTime = DateTime.UtcNow.AddHours(24),
-                    ConfirmedAt = null
+                    var deptNoteEntry = notesList.FirstOrDefault(n => n.DepartmentId == deptId);
+                    string distNote = "";
+                    if (notesList.Any())
+                    {
+                        distNote = deptNoteEntry?.Note ?? "";
+                    }
+                    else if (!string.IsNullOrWhiteSpace(staffNote) && !isStaffNoteJson)
+                    {
+                        distNote = staffNote;
+                    }
+
+                    return new Distribution
+                    {
+                        FileVersionId = fileVersion.Id,
+                        DepartmentId = deptId,
+                        Status = DistributionStatus.Pending,
+                        DeadlineTime = DateTime.UtcNow.AddHours(24),
+                        ConfirmedAt = null,
+                        Note = string.IsNullOrWhiteSpace(distNote) ? null : distNote
+                    };
                 }).ToList();
 
                 var notifications = resumedDepartmentIds.Select(deptId =>
                 {
                     var deptNoteEntry = notesList.FirstOrDefault(n => n.DepartmentId == deptId);
                     
-                    // If we successfully parsed JSON department notes, use them.
-                    // Otherwise, fallback to staffNote (if it's a plain string from old logic)
                     string msg = "File has been resumed with a new revision from staff.";
                     if (notesList.Any())
                     {
                         msg = deptNoteEntry?.Note ?? msg;
                     }
-                    else if (!string.IsNullOrWhiteSpace(staffNote))
+                    else if (!string.IsNullOrWhiteSpace(staffNote) && !isStaffNoteJson)
                     {
                         msg = staffNote;
                     }

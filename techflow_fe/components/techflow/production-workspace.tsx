@@ -547,7 +547,19 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
             <div className="space-y-1.5 text-sm font-medium opacity-90 pt-2 w-full max-w-[90%] mx-auto text-left">
               {showChangeReason && (
                 <p className="bg-white/10 p-2.5 rounded-md whitespace-pre-wrap break-words max-h-24 overflow-y-auto shadow-inner text-xs leading-relaxed">
-                  <span className="font-bold">{file.categoryLeader || 'Tech Leader'}:</span> {file.changeReason}
+                  <span className="font-bold">{file.categoryLeader || 'Tech Leader'}:</span> {
+                      (() => {
+                        try {
+                          if (file.changeReason?.startsWith("[")) {
+                            const parsed = JSON.parse(file.changeReason);
+                            if (Array.isArray(parsed)) {
+                              return `Revised with specific notes for ${parsed.length} department(s)`;
+                            }
+                          }
+                        } catch {}
+                        return file.changeReason;
+                      })()
+                    }
                 </p>
               )}
               {file.note && (
@@ -656,7 +668,19 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
                     <CircleAlert className="w-3 h-3 shrink-0" />
                     {t("production.changeNotes")}
                   </span>
-                  <p className="text-muted-foreground italic leading-relaxed mb-3 break-words whitespace-pre-wrap max-h-24 overflow-y-auto">"{file.changeReason}"</p>
+                  <p className="text-muted-foreground italic leading-relaxed mb-3 break-words whitespace-pre-wrap max-h-24 overflow-y-auto">"{
+                      (() => {
+                        try {
+                          if (file.changeReason?.startsWith("[")) {
+                            const parsed = JSON.parse(file.changeReason);
+                            if (Array.isArray(parsed)) {
+                              return `Revised with specific notes for ${parsed.length} department(s)`;
+                            }
+                          }
+                        } catch {}
+                        return file.changeReason;
+                      })()
+                    }"</p>
                 </>
               )}
               {file.note && (

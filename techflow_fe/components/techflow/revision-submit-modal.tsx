@@ -39,7 +39,7 @@ export function RevisionSubmitModal({
   const [fileError, setFileError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const [stoppedDepts, setStoppedDepts] = useState<DepartmentDto[]>([]);
+  const [allDeptsList, setAllDeptsList] = useState<DepartmentDto[]>([]);
   const [loadingDepts, setLoadingDepts] = useState(true);
   const [deptNotes, setDeptNotes] = useState<Record<number, DeptNoteState>>({});
 
@@ -60,14 +60,16 @@ export function RevisionSubmitModal({
     setLoadingDepts(true);
     getDepartments()
       .then((allDepts) => {
-        const stopped = allDepts.filter((d) =>
-          revision.stoppedDepartmentIds?.includes(d.id)
-        );
-        setStoppedDepts(stopped);
+        setAllDeptsList(allDepts);
         
         const initial: Record<number, DeptNoteState> = {};
-        stopped.forEach((d) => {
-          initial[d.id] = { isAffected: true, note: "" };
+        allDepts.forEach((d) => {
+          const isStopped = revision.stoppedDepartmentIds?.includes(d.id);
+          if (isStopped) {
+            initial[d.id] = { isAffected: true, note: "" };
+          } else {
+            initial[d.id] = { isAffected: false, note: "No impact on your department." };
+          }
         });
         setDeptNotes(initial);
       })
@@ -92,7 +94,7 @@ export function RevisionSubmitModal({
   };
 
   const buildDepartmentNotes = (): DepartmentNoteRequest[] =>
-    stoppedDepts.map((d) => ({
+    allDeptsList.map((d) => ({
       departmentId: d.id,
       note: deptNotes[d.id]?.note || "",
       isAffected: deptNotes[d.id]?.isAffected ?? true,
@@ -111,7 +113,7 @@ export function RevisionSubmitModal({
     setSelectedFile(file);
   };
 
-  const isValid = stoppedDepts.every((d) => deptNotes[d.id]?.note?.trim()) && selectedFile && !fileError;
+  const isValid = allDeptsList.every((d) => deptNotes[d.id]?.note?.trim()) && selectedFile && !fileError;
 
   const handleSubmit = async () => {
     if (!revision || !selectedFile || !isValid) return;
@@ -227,13 +229,13 @@ export function RevisionSubmitModal({
               <div className="flex items-center justify-center py-6">
                 <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
               </div>
-            ) : stoppedDepts.length === 0 ? (
+            ) : allDeptsList.length === 0 ? (
               <div className="text-sm text-muted-foreground italic py-4 text-center">
-                No stopped departments found.
+                No departments found.
               </div>
             ) : (
               <div className="space-y-3">
-                {stoppedDepts.map((dept) => {
+                {allDeptsList.map((dept) => {
                   const state = deptNotes[dept.id] ?? { isAffected: true, note: "" };
                   return (
                     <div

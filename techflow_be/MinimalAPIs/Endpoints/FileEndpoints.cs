@@ -832,15 +832,18 @@ public static class FileEndpoints
                 .MaxAsync(cancellationToken) ?? 0;
 
             var staffNote = revisionRequest.SubmittedNote;
+            var isStaffNoteJson = staffNote?.StartsWith("[") ?? false;
+            var changeReasonStr = string.IsNullOrWhiteSpace(staffNote)
+                ? "Staff revision approved"
+                : (isStaffNoteJson ? "Revised by Staff with department-specific notes" : staffNote);
+
             var fileVersion = new FileVersion
             {
                 FileId = fileRecord.Id,
                 FileName = revisionRequest.SubmittedFileName ?? fileRecord.FileName,
                 VersionNumber = nextVersionNumber + 1,
                 FileUrl = revisionRequest.SubmittedFileUrl,
-                ChangeReason = string.IsNullOrWhiteSpace(staffNote)
-                    ? "Staff revision approved"
-                    : staffNote,
+                ChangeReason = changeReasonStr,
                 UploadedById = revisionRequest.AssignedStaffId ?? userId,
                 CreatedAt = DateTime.UtcNow
             };

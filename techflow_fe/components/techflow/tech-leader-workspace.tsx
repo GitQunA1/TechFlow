@@ -1133,7 +1133,19 @@ function FileViewerPane({
                       </div>
                       {rev.submittedNote && (
                         <p className="mt-1 text-xs text-blue-700 dark:text-blue-300 bg-blue-100/60 dark:bg-blue-900/30 rounded px-2 py-1">
-                          📝 {rev.submittedNote}
+                          📝 {
+                            (() => {
+                              try {
+                                if (rev.submittedNote.startsWith("[")) {
+                                  const parsed = JSON.parse(rev.submittedNote);
+                                  if (Array.isArray(parsed)) {
+                                    return `Contains specific notes for ${parsed.length} department(s)`;
+                                  }
+                                }
+                              } catch {}
+                              return rev.submittedNote;
+                            })()
+                          }
                         </p>
                       )}
                     </div>

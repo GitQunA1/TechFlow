@@ -60,10 +60,13 @@ export function RevisionSubmitModal({
     setLoadingDepts(true);
     getDepartments()
       .then((allDepts) => {
-        setAllDeptsList(allDepts);
+        const distributed = allDepts.filter((d) =>
+          revision.distributedDepartmentIds?.includes(d.id)
+        );
+        setAllDeptsList(distributed);
         
         const initial: Record<number, DeptNoteState> = {};
-        allDepts.forEach((d) => {
+        distributed.forEach((d) => {
           const isStopped = revision.stoppedDepartmentIds?.includes(d.id);
           if (isStopped) {
             initial[d.id] = { isAffected: true, note: "" };

@@ -17,4 +17,5 @@ public record StaffRevisionRequestDto(
     DateTime? SubmittedAt,
     int? AssignedStaffId,
     string? AssignedStaffName,
-    int[] StoppedDepartmentIds);
+    int[] StoppedDepartmentIds,
+    int[] DistributedDepartmentIds);

@@ -666,7 +666,8 @@ public static class FileEndpoints
                     r.SubmittedAt,
                     r.AssignedStaffId,
                     r.AssignedStaff != null ? r.AssignedStaff.Username : null,
-                    r.File.StoppedDepartmentIds))
+                    r.File.StoppedDepartmentIds,
+                    r.File.Versions.SelectMany(v => v.Distributions).Select(d => d.DepartmentId).Distinct().ToArray()))
                 .ToListAsync(cancellationToken);
 
             return Results.Ok(requests);
@@ -709,7 +710,8 @@ public static class FileEndpoints
                     r.SubmittedAt,
                     r.AssignedStaffId,
                     r.AssignedStaff != null ? r.AssignedStaff.Username : null,
-                    r.File.StoppedDepartmentIds))
+                    r.File.StoppedDepartmentIds,
+                    r.File.Versions.SelectMany(v => v.Distributions).Select(d => d.DepartmentId).Distinct().ToArray()))
                 .ToListAsync(cancellationToken);
 
             return Results.Ok(requests);

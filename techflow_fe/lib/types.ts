@@ -188,10 +188,11 @@ export interface StaffRevisionRequestDto {
   submittedFileUrl: string | null;
   submittedFileName: string | null;
   submittedNote: string | null;
-  submittedAt: string | null;
-  assignedStaffId: number | null;
-  assignedStaffName: string | null;
-  stoppedDepartmentIds: number[];
+  submittedAt?: string;
+  assignedStaffId?: number;
+  assignedStaffName?: string;
+  stoppedDepartmentIds?: number[];
+  distributedDepartmentIds?: number[];
 }
 
 // ── Staff Users ───────────────────────────────────────────────────────────────

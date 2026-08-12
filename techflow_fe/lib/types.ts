@@ -191,6 +191,7 @@ export interface StaffRevisionRequestDto {
   submittedAt: string | null;
   assignedStaffId: number | null;
   assignedStaffName: string | null;
+  stoppedDepartmentIds: number[];
 }
 
 // ── Staff Users ───────────────────────────────────────────────────────────────

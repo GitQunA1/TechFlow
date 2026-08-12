@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CheckCircle2, XCircle, FileText, Loader2, Eye, Upload, AlertTriangle } from "lucide-react";
 import {
   Dialog,
@@ -13,9 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { approveRevision, rejectRevision, API_BASE } from "@/lib/api";
-import type { StaffRevisionRequestDto } from "@/lib/api";
+import { approveRevision, rejectRevision, getDepartments, API_BASE } from "@/lib/api";
+import type { StaffRevisionRequestDto, DepartmentDto, DepartmentNoteRequest } from "@/lib/api";
 
 interface RevisionApprovalModalProps {
   open: boolean;
@@ -31,6 +32,23 @@ export function RevisionApprovalModal({
   const [submitting, setSubmitting] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [departments, setDepartments] = useState<DepartmentDto[]>([]);
+
+  useEffect(() => {
+    if (open) {
+      getDepartments().then(setDepartments).catch(console.error);
+    }
+  }, [open]);
+
+  let parsedNotes: DepartmentNoteRequest[] | null = null;
+  if (revision?.submittedNote) {
+    try {
+      parsedNotes = JSON.parse(revision.submittedNote);
+      if (!Array.isArray(parsedNotes)) parsedNotes = null;
+    } catch {
+      parsedNotes = null;
+    }
+  }
 
   const reset = () => {
     setSubmitting(false);
@@ -121,14 +139,35 @@ export function RevisionApprovalModal({
 
           {/* Staff's update note */}
           {revision.submittedNote && (
-            <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800 p-4 space-y-2">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800 p-4 space-y-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-400">
                 📝 Staff&apos;s Update Note
               </p>
-              <div className="max-h-32 overflow-y-auto">
-                <p className="text-sm text-blue-900 dark:text-blue-200 whitespace-pre-wrap break-words">
-                  {revision.submittedNote}
-                </p>
+              <div className="max-h-48 overflow-y-auto pr-2 space-y-2">
+                {parsedNotes ? (
+                  parsedNotes.map((note, idx) => {
+                    const dept = departments.find(d => d.id === note.departmentId);
+                    return (
+                      <div key={idx} className="bg-white dark:bg-background/50 border border-blue-100 dark:border-blue-800/50 rounded p-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-xs text-blue-800 dark:text-blue-300">
+                            {dept ? `${dept.name} (${dept.code})` : `Dept #${note.departmentId}`}
+                          </span>
+                          <Badge variant={note.isAffected ? "default" : "secondary"} className={cn("h-4 text-[9px] px-1", note.isAffected && "bg-amber-500 hover:bg-amber-600")}>
+                            {note.isAffected ? "Affected" : "Not Affected"}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-blue-900 dark:text-blue-200 whitespace-pre-wrap break-words">
+                          {note.note}
+                        </p>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-sm text-blue-900 dark:text-blue-200 whitespace-pre-wrap break-words">
+                    {revision.submittedNote}
+                  </p>
+                )}
               </div>
               <p className="text-xs text-blue-500 border-t border-blue-200/60 pt-2">
                 This note will be forwarded to all departments upon approval.

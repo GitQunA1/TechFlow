@@ -665,7 +665,8 @@ public static class FileEndpoints
                     r.SubmittedNote,
                     r.SubmittedAt,
                     r.AssignedStaffId,
-                    r.AssignedStaff != null ? r.AssignedStaff.Username : null))
+                    r.AssignedStaff != null ? r.AssignedStaff.Username : null,
+                    r.File.StoppedDepartmentIds))
                 .ToListAsync(cancellationToken);
 
             return Results.Ok(requests);
@@ -707,7 +708,8 @@ public static class FileEndpoints
                     r.SubmittedNote,
                     r.SubmittedAt,
                     r.AssignedStaffId,
-                    r.AssignedStaff != null ? r.AssignedStaff.Username : null))
+                    r.AssignedStaff != null ? r.AssignedStaff.Username : null,
+                    r.File.StoppedDepartmentIds))
                 .ToListAsync(cancellationToken);
 
             return Results.Ok(requests);
@@ -862,6 +864,20 @@ public static class FileEndpoints
 
             // Create distributions for previously stopped departments
             var notesList = request?.DepartmentNotes ?? new List<DepartmentNoteDto>();
+            if (notesList.Count == 0 && !string.IsNullOrWhiteSpace(revisionRequest.SubmittedNote))
+            {
+                try
+                {
+                    notesList = System.Text.Json.JsonSerializer.Deserialize<List<DepartmentNoteDto>>(
+                        revisionRequest.SubmittedNote,
+                        new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                    ) ?? new List<DepartmentNoteDto>();
+                }
+                catch
+                {
+                    // Ignore, it might be a plain string
+                }
+            }
 
             if (resumedDepartmentIds.Any())
             {
@@ -877,9 +893,19 @@ public static class FileEndpoints
                 var notifications = resumedDepartmentIds.Select(deptId =>
                 {
                     var deptNoteEntry = notesList.FirstOrDefault(n => n.DepartmentId == deptId);
-                    var msg = !string.IsNullOrWhiteSpace(staffNote)
-                        ? staffNote
-                        : deptNoteEntry?.Note ?? "File has been resumed with a new revision from staff.";
+                    
+                    // If we successfully parsed JSON department notes, use them.
+                    // Otherwise, fallback to staffNote (if it's a plain string from old logic)
+                    string msg = "File has been resumed with a new revision from staff.";
+                    if (notesList.Any())
+                    {
+                        msg = deptNoteEntry?.Note ?? msg;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(staffNote))
+                    {
+                        msg = staffNote;
+                    }
+
                     return new Notification
                     {
                         DepartmentId = deptId,

@@ -352,11 +352,11 @@ export function ResumeModal({
                           </div>
                           {/* Affected Toggle */}
                           <div className="flex items-center gap-1 bg-background rounded-full border p-0.5 shadow-sm">
-                            <Badge
-                              variant={state.isAffected ? "warning" : "secondary"}
-                              className="cursor-pointer"
-                              onClick={() => updateNote(dept.id, "isAffected", true)}
-                            >
+                              <Badge
+                                variant={state.isAffected ? "default" : "secondary"}
+                                className={cn("cursor-pointer", state.isAffected && "bg-amber-500 hover:bg-amber-600 text-white")}
+                                onClick={() => updateNote(dept.id, "isAffected", true)}
+                              >
                               {state.isAffected && <AlertTriangle className="w-3 h-3 mr-1" />}
                               {t("modals.resume.affected")}
                             </Badge>

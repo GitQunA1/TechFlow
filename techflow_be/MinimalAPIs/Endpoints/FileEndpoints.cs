@@ -285,7 +285,6 @@ public static class FileEndpoints
             if (!int.TryParse(currentUserId, out var userId)) return Results.Unauthorized();
 
             var currentUser = await dbContext.Users
-                .Include(u => u.LedCategories)
                 .FirstAsync(x => x.Id == userId, cancellationToken);
 
             if (currentUser.Role != UserRole.Admin && currentUser.Role != UserRole.TechLeader)
@@ -298,16 +297,8 @@ public static class FileEndpoints
                 .Include(d => d.UploadedBy)
                 .Where(d => d.Status == DraftStatus.Pending);
 
-            // Leader thấy drafts thuộc TẤT CẢ categories mà mình quản lý
-            // (bao gồm cả LedCategories qua Category.LeaderId VÀ CategoryId trực tiếp trên User)
-            if (currentUser.Role == UserRole.TechLeader)
-            {
-                var ledCategoryIds = currentUser.LedCategories.Select(c => c.Id).ToList();
-                // Also include the category directly assigned to this leader via User.CategoryId
-                if (currentUser.CategoryId.HasValue && !ledCategoryIds.Contains(currentUser.CategoryId.Value))
-                    ledCategoryIds.Add(currentUser.CategoryId.Value);
-                query = query.Where(d => ledCategoryIds.Contains(d.Folder.CategoryId));
-            }
+            // Tất cả Leader đều thấy mọi pending draft (không giới hạn category)
+            // Admin cũng thấy tất cả (không cần filter)
 
             var drafts = await query
                 .OrderByDescending(d => d.CreatedAt)

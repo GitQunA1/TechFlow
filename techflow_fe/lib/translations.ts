@@ -1,4 +1,4 @@
-﻿export type Language = 'en' | 'vi';
+export type Language = 'en' | 'vi';
 
 export type Dictionary = {
   [key: string]: string | Dictionary;
@@ -37,6 +37,7 @@ export const translations: Record<Language, Dictionary> = {
       all: "All",
       filters: "Filters",
       time: "Time",
+      uploadedBy: "Uploaded by",
 
       on: "on",
       file: "File",
@@ -163,9 +164,7 @@ export const translations: Record<Language, Dictionary> = {
 
       confirmedAt: "Confirmed At",
       distributed: "Distributed",
-      outdated: "Outdated - Cannot Confirm",
-      changeNotes: "Change Notes",
-      departmentNote: "Department Note"
+      outdated: "Outdated - Cannot Confirm"
     },
     planning: {
       title: "Planning View",
@@ -475,9 +474,7 @@ export const translations: Record<Language, Dictionary> = {
 
       confirmedAt: "Xác nhận lúc",
       distributed: "Phân phối lúc",
-      outdated: "Đã lỗi thời - Không thể xác nhận",
-      changeNotes: "Ghi chú Thay đổi",
-      departmentNote: "Ghi chú Phòng ban"
+      outdated: "Đã lỗi thời - Không thể xác nhận"
     },
     planning: {
       title: "Giao diện Planning",

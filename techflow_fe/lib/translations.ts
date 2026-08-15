@@ -1,4 +1,4 @@
-export type Language = 'en' | 'vi';
+﻿export type Language = 'en' | 'vi';
 
 export type Dictionary = {
   [key: string]: string | Dictionary;
@@ -37,7 +37,7 @@ export const translations: Record<Language, Dictionary> = {
       all: "All",
       filters: "Filters",
       time: "Time",
-      uploadedBy: "Uploaded by",
+
       on: "on",
       file: "File",
       department: "Department",
@@ -138,8 +138,8 @@ export const translations: Record<Language, Dictionary> = {
       distributedTo: "Distributed to:",
       drawings: "Drawings",
       noDrawings: "No drawings in this folder.",
-      version: "Version",
-      uploadedBy: "Uploaded By",
+
+
       statusActive: "Active",
       statusStopped: "Stopped",
       resume: "Resume",
@@ -160,7 +160,7 @@ export const translations: Record<Language, Dictionary> = {
       confirmSuccess: "Receipt confirmed",
       stopProduction: "STOP PRODUCTION IMMEDIATELY",
       acknowledgeStop: "Acknowledge Stop",
-      version: "Version",
+
       confirmedAt: "Confirmed At",
       distributed: "Distributed",
       outdated: "Outdated - Cannot Confirm",
@@ -450,8 +450,8 @@ export const translations: Record<Language, Dictionary> = {
       distributedTo: "Đã phân phối đến:",
       drawings: "Bản vẽ",
       noDrawings: "Không có bản vẽ trong thư mục này.",
-      version: "Phiên bản",
-      uploadedBy: "Người tải lên",
+
+
       statusActive: "Đang hoạt động",
       statusStopped: "Đang dừng",
       resume: "Phục hồi",
@@ -472,7 +472,7 @@ export const translations: Record<Language, Dictionary> = {
       confirmSuccess: "Đã xác nhận thành công",
       stopProduction: "NGỪNG SẢN XUẤT NGAY LẬP TỨC",
       acknowledgeStop: "Xác nhận Ngừng",
-      version: "Phiên bản",
+
       confirmedAt: "Xác nhận lúc",
       distributed: "Phân phối lúc",
       outdated: "Đã lỗi thời - Không thể xác nhận",

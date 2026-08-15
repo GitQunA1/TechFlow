@@ -49,7 +49,7 @@ export function ResumeModal({
   sentToDepartmentNames,
   uploadedByRole,
 }: ResumeModalProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const isStaffFile = uploadedByRole === "Staff";
   const [tab, setTab] = useState<"simple" | "with-file">("simple");
 
@@ -65,6 +65,7 @@ export function ResumeModal({
   const [newFileName, setNewFileName] = useState("");
   const [fileError, setFileError] = useState<string | null>(null);
   const [sendingRequest, setSendingRequest] = useState(false);
+  const [staffNote, setStaffNote] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -82,6 +83,7 @@ export function ResumeModal({
       setFileError(null);
       setDeptNotes({});
       setSendingRequest(false);
+      setStaffNote("");
       return;
     }
     setLoadingDepts(true);
@@ -126,7 +128,11 @@ export function ResumeModal({
       isAffected: deptNotes[d.id]?.isAffected ?? true,
     }));
 
-  const isValid = tab === "simple" ? true : isStaffFile ? true : stoppedDepts.every((d) => deptNotes[d.id]?.note?.trim()) && !!newFileName && !fileError;
+  const isValid = tab === "simple" 
+    ? true 
+    : isStaffFile 
+      ? staffNote.trim().length > 0 
+      : stoppedDepts.every((d) => deptNotes[d.id]?.note?.trim()) && !!newFileName && !fileError;
 
   // Case 1 submit
   const handleSimpleResume = async () => {
@@ -146,10 +152,11 @@ export function ResumeModal({
 
   // Case 2a: Staff file — send revision request
   const handleSendRevisionRequest = async () => {
+    if (!staffNote.trim()) return;
     setSendingRequest(true);
     try {
       const { createRevisionRequest } = await import("@/lib/api");
-      await createRevisionRequest(fileId, { message: null });
+      await createRevisionRequest(fileId, { message: staffNote.trim() });
       toast.success("Request sent to Staff!", {
         description: "Staff has been notified to revise and re-upload this file.",
       });
@@ -242,13 +249,27 @@ export function ResumeModal({
 
           {/* Case 2 for Staff file: Show send-request confirm UI */}
           {tab === "with-file" && isStaffFile && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-start gap-2 p-4 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-900/10 dark:border-amber-800">
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <div className="text-sm text-amber-700 dark:text-amber-400 space-y-1">
                   <p className="font-medium">{t("modals.resume.staffWarning").split(". ")[0]}.</p>
                   <p>{t("modals.resume.staffWarning").split(". ").slice(1).join(". ")}</p>
                 </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  {language === "vi" ? "Ghi chú yêu cầu sửa " : "Notes / Revision Instructions "}
+                  <span className="text-destructive">*</span>
+                </label>
+                <textarea
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary resize-y"
+                  style={{ minHeight: "100px", maxHeight: "200px" }}
+                  placeholder={language === "vi" ? "Mô tả những gì Staff cần chỉnh sửa..." : "Describe what the Staff needs to fix..."}
+                  value={staffNote}
+                  onChange={(e) => setStaffNote(e.target.value)}
+                />
               </div>
             </div>
           )}
@@ -414,7 +435,7 @@ export function ResumeModal({
             ) : isStaffFile ? (
               <Button
                 className="min-w-[180px] bg-amber-600 hover:bg-amber-700 text-white"
-                disabled={sendingRequest}
+                disabled={sendingRequest || !isValid}
                 onClick={handleSendRevisionRequest}
               >
                 {sendingRequest ? (

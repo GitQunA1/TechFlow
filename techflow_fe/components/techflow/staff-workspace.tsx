@@ -396,7 +396,7 @@ function DeleteFolderModal({
 
 export default function StaffWorkspace() {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [categories, setCategories] = useState<CategoryDto[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [folders, setFolders] = useState<FolderTreeDto[]>([]);
@@ -790,13 +790,22 @@ export default function StaffWorkspace() {
                       <RevisionStatusBadge status={rev.status} />
                     </div>
 
-                    {/* Rejected message */}
-                    {rev.status === "Rejected" && rev.message && (
-                      <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3">
-                        <p className="text-xs font-semibold text-destructive uppercase tracking-wide mb-1">
-                          {t("staff.rejectReasonTitle")}
+                    {/* Revision request note / Rejected message */}
+                    {rev.message && (
+                      <div className={cn(
+                        "rounded-lg border p-3",
+                        rev.status === "Rejected" ? "bg-destructive/10 border-destructive/20" : "bg-amber-50/50 border-amber-200 dark:bg-amber-900/10 dark:border-amber-800"
+                      )}>
+                        <p className={cn(
+                          "text-xs font-semibold uppercase tracking-wide mb-1",
+                          rev.status === "Rejected" ? "text-destructive" : "text-amber-700 dark:text-amber-400"
+                        )}>
+                          {rev.status === "Rejected" ? t("staff.rejectReasonTitle") : (language === "vi" ? "Ghi chú yêu cầu sửa" : "Revision Notes")}
                         </p>
-                        <p className="text-sm text-destructive/90 whitespace-pre-wrap break-words">
+                        <p className={cn(
+                          "text-sm whitespace-pre-wrap break-words",
+                          rev.status === "Rejected" ? "text-destructive/90" : "text-amber-800 dark:text-amber-300"
+                        )}>
                           {rev.message}
                         </p>
                       </div>

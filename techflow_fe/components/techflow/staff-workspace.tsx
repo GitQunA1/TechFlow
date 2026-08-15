@@ -20,6 +20,7 @@ import {
   AlertCircle,
   UserCog,
   Trash2,
+  UserCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -747,9 +748,13 @@ export default function StaffWorkspace() {
                         <p className="text-xs text-muted-foreground">
                           {rev.categoryName} · {rev.folderName}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          {t("staff.requestedBy")} <span className="font-medium">{rev.requestedBy}</span>
-                        </p>
+                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                          {t("staff.requestedBy")} 
+                          <span className="flex items-center gap-1 font-medium text-foreground">
+                            <UserCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                            {rev.requestedBy}
+                          </span>
+                        </div>
                       </div>
                       <RevisionStatusBadge status={rev.status} />
                     </div>

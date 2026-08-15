@@ -12,5 +12,6 @@ public record FolderFileDto(
     DateTime CreatedAt,
     IReadOnlyList<string> SentToDepartments,
     IReadOnlyList<string> ConfirmedByDepartments,
-    string UploadedByRole
+    string UploadedByRole,
+    string? UploadedByUsername
 );

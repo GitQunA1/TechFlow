@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { Bell, Check, CircleAlert, FileText, OctagonX, Loader2, FolderOpen, Search, Filter, CheckCircle2, AlertCircle, Trash2, CheckCheck } from "lucide-react";
+import { Bell, Check, CircleAlert, FileText, OctagonX, Loader2, FolderOpen, Search, Filter, CheckCircle2, AlertCircle, Trash2, CheckCheck, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -636,8 +636,16 @@ function WorkshopCard({ file, isNew, onConfirm, id }: { file: PendingFileDto; is
                 <p className="text-xs text-muted-foreground truncate">
                   {file.parentFolderName ? `${file.parentFolderName} / ${file.folderName}` : file.folderName}
                 </p>
+                  <div className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
+                    <span>{t("common.uploadedBy") || "Uploaded by"}</span>
+                    <span className="flex items-center gap-1 font-medium text-foreground">
+                      <UserCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                      {file.uploadedByUsername || file.uploadedByRole}
+                    </span>
+                    <span>{t("common.on") || "on"} {new Date(file.createdAt).toLocaleString()}</span>
+                  </div>
+                </div>
               </div>
-            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-sm">

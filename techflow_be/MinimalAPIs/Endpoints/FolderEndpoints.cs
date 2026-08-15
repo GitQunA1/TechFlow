@@ -109,7 +109,8 @@ public static class FolderEndpoints
                     version.CreatedAt,
                     sentTo,
                     confirmedBy,
-                    version.UploadedBy?.Role.ToString() ?? "Unknown");
+                    version.UploadedBy?.Role.ToString() ?? "Unknown",
+                    version.UploadedBy?.Username);
             });
         }).OrderByDescending(x => x.CreatedAt).ToList();
 

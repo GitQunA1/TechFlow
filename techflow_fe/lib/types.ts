@@ -74,6 +74,7 @@ export interface FolderFileDto {
   sentToDepartments: string[];
   confirmedByDepartments: string[];
   uploadedByRole: string;
+  uploadedByUsername?: string;
 }
 
 // ── File Upload ───────────────────────────────────────────────────────────────

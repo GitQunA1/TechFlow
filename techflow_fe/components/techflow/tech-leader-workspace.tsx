@@ -25,6 +25,7 @@ import {
   Trash2,
   CheckCheck,
   Folder,
+  UserCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -1073,7 +1074,12 @@ function FileViewerPane({
                         </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground flex items-center gap-1.5 flex-wrap">
-                        <span>Uploaded by <span className="font-medium text-foreground">{draft.uploadedBy}</span> on {new Date(draft.createdAt).toLocaleString()}</span>
+                          <span>{t("common.uploadedBy") || "Uploaded by"}</span>
+                          <span className="flex items-center gap-1 font-medium text-foreground">
+                            <UserCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                            {draft.uploadedBy}
+                          </span>
+                          <span>{t("common.on") || "on"} {new Date(draft.createdAt).toLocaleString()}</span>
                         <span className="text-muted-foreground/40">&bull;</span>
                         <span className="flex items-center gap-1">
                           <Folder className="w-3.5 h-3.5" />
@@ -1234,9 +1240,14 @@ function FileViewerPane({
                           {isNew && <Badge className="bg-emerald-500 hover:bg-emerald-600 border-none text-white shadow-sm animate-pulse">{t("common.new")}</Badge>}
                           {file.isStopped && <Badge variant="destructive" className="animate-flash shadow-sm">{t("common.stop")}</Badge>}
                         </div>
-                        <div className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
-                          {t("techLeader.uploadedOn")} {new Date(file.createdAt).toLocaleString()}
-                        </div>
+                          <div className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
+                            <span>{t("common.uploadedBy") || "Uploaded by"}</span>
+                            <span className="flex items-center gap-1 font-medium text-foreground">
+                              <UserCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                              {file.uploadedByUsername || file.uploadedByRole}
+                            </span>
+                            <span>{t("common.on") || "on"} {new Date(file.createdAt).toLocaleString()}</span>
+                          </div>
                       </div>
                     </div>
 

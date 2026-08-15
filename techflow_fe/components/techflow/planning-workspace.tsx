@@ -13,6 +13,7 @@ import {
   LayoutGrid,
   Package,
   Search,
+  UserCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -414,9 +415,14 @@ function PlanningFileViewer({
                             <Badge variant="destructive" className="shadow-sm">{t("common.stop")}</Badge>
                           )}
                         </div>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          {t("techLeader.uploadedOn")} {new Date(file.createdAt).toLocaleString()}
-                        </div>
+                          <div className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
+                            <span>{t("common.uploadedBy") || "Uploaded by"}</span>
+                            <span className="flex items-center gap-1 font-medium text-foreground">
+                              <UserCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                              {file.uploadedByUsername || file.uploadedByRole}
+                            </span>
+                            <span>{t("common.on") || "on"} {new Date(file.createdAt).toLocaleString()}</span>
+                          </div>
                       </div>
                     </div>
                   </div>

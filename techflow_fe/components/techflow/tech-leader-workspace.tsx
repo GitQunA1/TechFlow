@@ -225,6 +225,10 @@ export default function TechLeaderWorkspace() {
       loadPendingRevisions();
       loadNotifications();
     });
+    const offRevisionApproved = on("RevisionApproved", () => {
+      loadPendingRevisions();
+      setRefreshTrigger(prev => prev + 1);
+    });
     const offFolder = on("FolderUpdated", () => {
       setRefreshTrigger(prev => prev + 1);
     });
@@ -233,6 +237,7 @@ export default function TechLeaderWorkspace() {
       offConfirm();
       offDraft();
       offRevision();
+      offRevisionApproved();
       offFolder();
     };
   }, [on, loadPendingDrafts, loadPendingRevisions]);
@@ -689,7 +694,7 @@ function CategoryWorkspace({
               onRefresh={loadFolders}
               pendingDrafts={pendingDrafts.filter(d => d.folderId === selectedFolder.id)}
               setReviewDraftCtx={setReviewDraftCtx}
-              pendingRevisions={pendingRevisions.filter(r => r.fileId != null)}
+              pendingRevisions={pendingRevisions.filter(r => r.fileId != null && r.folderId === selectedFolder.id)}
               setRevisionReviewCtx={setRevisionReviewCtx}
             />
           ) : (

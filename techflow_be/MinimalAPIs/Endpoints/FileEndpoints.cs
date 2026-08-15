@@ -106,31 +106,31 @@ public static class FileEndpoints
                 };
                 dbContext.DraftFiles.Add(draft);
                 
-                if (folder?.Category?.LeaderId != null)
+                var categoryLeaders = await dbContext.Users
+                    .Where(u => u.CategoryId == folderId && u.Role == UserRole.TechLeader)
+                    .Select(u => u.Id)
+                    .ToListAsync(cancellationToken);
+
+                var draftNotifications = categoryLeaders.Select(leaderId => new Notification
                 {
-                    dbContext.Notifications.Add(new Notification
-                    {
-                        UserId = folder.Category.LeaderId,
-                        Title = "New Draft Uploaded",
-                        Message = $"{currentUser.Username} uploaded a new draft: {originalFileName}.",
-                        TargetFolderId = folderId,
-                        CreatedAt = DateTime.UtcNow
-                    });
-                }
+                    UserId = leaderId,
+                    Title = "New Draft Uploaded",
+                    Message = $"{currentUser.Username} uploaded a new draft: {originalFileName}.",
+                    TargetFolderId = folderId,
+                    CreatedAt = DateTime.UtcNow
+                });
+                dbContext.Notifications.AddRange(draftNotifications);
                 
                 await dbContext.SaveChangesAsync(cancellationToken);
 
                 // Notify the specific leader and all admins about new pending draft
-                if (folder?.Category?.LeaderId != null)
+                await broadcaster.BroadcastToLeadersAsync("NewDraftNotification", new
                 {
-                    await broadcaster.BroadcastToUserAsync(folder.Category.LeaderId.Value, "NewDraftNotification", new
-                    {
-                        DraftId = draft.Id,
-                        draft.FileName,
-                        FolderName = folder?.Name ?? "",
-                        UploadedBy = currentUser.Username
-                    });
-                }
+                    DraftId = draft.Id,
+                    draft.FileName,
+                    FolderName = folder?.Name ?? "",
+                    UploadedBy = currentUser.Username
+                });
                 
                 await broadcaster.BroadcastToAdminsAsync("NewDraftNotification", new
                 {
@@ -513,6 +513,21 @@ public static class FileEndpoints
                 await file.CopyToAsync(stream, cancellationToken);
             }
 
+            var categoryLeaders = await dbContext.Users
+                .Where(u => u.CategoryId == draft.Folder.CategoryId && u.Role == UserRole.TechLeader)
+                .Select(u => u.Id)
+                .ToListAsync(cancellationToken);
+
+            var draftNotifications = categoryLeaders.Select(leaderId => new Notification
+            {
+                UserId = leaderId,
+                Title = "Draft Resubmitted",
+                Message = $"{currentUser.Username} resubmitted draft: {originalFileName}.",
+                TargetFolderId = draft.FolderId,
+                CreatedAt = DateTime.UtcNow
+            });
+            dbContext.Notifications.AddRange(draftNotifications);
+
             draft.FileUrl = $"/uploads/{uniqueFileName}";
             draft.FileName = originalFileName;
             draft.Status = DraftStatus.Pending;
@@ -520,32 +535,17 @@ public static class FileEndpoints
             draft.ReviewedById = null;
             draft.ReviewedAt = null;
 
-            if (draft.Folder?.Category?.LeaderId != null)
-            {
-                dbContext.Notifications.Add(new Notification
-                {
-                    UserId = draft.Folder.Category.LeaderId,
-                    Title = "Draft Resubmitted",
-                    Message = $"{currentUser.Username} resubmitted draft: {originalFileName}.",
-                    TargetFolderId = draft.FolderId,
-                    CreatedAt = DateTime.UtcNow
-                });
-            }
-
             await dbContext.SaveChangesAsync(cancellationToken);
 
-            // Notify the specific leader and all admins
-            if (draft.Folder?.Category?.LeaderId != null)
+            // Notify all Leaders and Admins
+            await broadcaster.BroadcastToLeadersAsync("NewDraftNotification", new
             {
-                await broadcaster.BroadcastToUserAsync(draft.Folder.Category.LeaderId.Value, "NewDraftNotification", new
-                {
-                    DraftId = draft.Id,
-                    draft.FileName,
-                    FolderName = draft.Folder?.Name ?? "",
-                    UploadedBy = currentUser.Username,
-                    IsResubmission = true
-                });
-            }
+                DraftId = draft.Id,
+                draft.FileName,
+                FolderName = draft.Folder?.Name ?? "",
+                UploadedBy = currentUser.Username,
+                IsResubmission = true
+            });
             
             await broadcaster.BroadcastToAdminsAsync("NewDraftNotification", new
             {
@@ -735,7 +735,7 @@ public static class FileEndpoints
             if (currentUser.Role != UserRole.Staff) return Results.Forbid();
 
             var revisionRequest = await dbContext.StaffRevisionRequests
-                .Include(r => r.File)
+                .Include(r => r.File).ThenInclude(f => f.Folder)
                 .FirstOrDefaultAsync(r => r.Id == id && r.AssignedStaffId == userId, cancellationToken);
 
             if (revisionRequest is null) return Results.NotFound("Revision request not found.");
@@ -768,19 +768,25 @@ public static class FileEndpoints
             revisionRequest.Status = RevisionStatus.Submitted;
             revisionRequest.SubmittedAt = DateTime.UtcNow;
 
-            dbContext.Notifications.Add(new Notification
+            var categoryLeaders = await dbContext.Users
+                .Where(u => u.CategoryId == revisionRequest.File.Folder.CategoryId && u.Role == UserRole.TechLeader)
+                .Select(u => u.Id)
+                .ToListAsync(cancellationToken);
+
+            var notifications = categoryLeaders.Select(leaderId => new Notification
             {
-                UserId = revisionRequest.RequestedById,
+                UserId = leaderId,
                 Title = "Revision Submitted",
                 Message = $"{currentUser.Username} submitted revision for {revisionRequest.File.FileName}.",
                 TargetFileId = revisionRequest.FileId,
                 CreatedAt = DateTime.UtcNow
             });
+            dbContext.Notifications.AddRange(notifications);
 
             await dbContext.SaveChangesAsync(cancellationToken);
 
-            // Notify the leader who created the request
-            await broadcaster.BroadcastToUserAsync(revisionRequest.RequestedById, "RevisionSubmitted", new
+            // Notify all Leaders (not just the one who created the request) + Admins
+            await broadcaster.BroadcastToLeadersAsync("RevisionSubmitted", new
             {
                 RevisionId = revisionRequest.Id,
                 FileId = revisionRequest.FileId,
@@ -954,6 +960,15 @@ public static class FileEndpoints
                 FileName = fileVersion.FileName,
                 fileVersion.VersionNumber,
                 HasNewFile = true
+            });
+
+            // Notify all Leaders that a revision was approved (so all can refresh their list)
+            await broadcaster.BroadcastToLeadersAsync("RevisionApproved", new
+            {
+                RevisionId = revisionRequest.Id,
+                FileId = fileRecord.Id,
+                fileRecord.FileName,
+                fileVersion.VersionNumber
             });
 
             // Notify the staff member

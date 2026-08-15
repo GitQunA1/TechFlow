@@ -21,6 +21,7 @@ import {
   UserCog,
   Trash2,
   UserCircle,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -401,6 +402,25 @@ export default function StaffWorkspace() {
   const [folders, setFolders] = useState<FolderTreeDto[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<FolderTreeDto | null>(null);
   const [loadingFolders, setLoadingFolders] = useState(false);
+  const [folderSearch, setFolderSearch] = useState("");
+
+  // Recursive folder filter
+  const filterFolders = (nodes: FolderTreeDto[], query: string): FolderTreeDto[] => {
+    if (!query) return nodes;
+    const lowerQuery = query.toLowerCase();
+    
+    return nodes.reduce<FolderTreeDto[]>((acc, node) => {
+      const isMatch = node.name.toLowerCase().includes(lowerQuery);
+      const filteredChildren = filterFolders(node.children || [], query);
+      
+      if (isMatch || filteredChildren.length > 0) {
+        acc.push({ ...node, children: filteredChildren });
+      }
+      return acc;
+    }, []);
+  };
+
+  const filteredFolders = filterFolders(folders, folderSearch);
 
   const [drafts, setDrafts] = useState<DraftFileDto[]>([]);
   const [revisions, setRevisions] = useState<StaffRevisionRequestDto[]>([]);
@@ -537,45 +557,56 @@ export default function StaffWorkspace() {
       <div className="w-72 border-r flex flex-col overflow-hidden">
         {selectedCategoryId ? (
           <>
-            <div className="p-3 border-b flex items-center justify-between">
-              <span className="text-sm font-medium truncate">
-                {selectedCategory?.name}
-              </span>
-              {selectedFolder && (
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs gap-1"
-                    onClick={() => setCreateSubfolderOpen(true)}
-                    disabled={selectedFolder.parentId !== null}
-                  >
-                    <Plus className="w-3 h-3" />
-                    {t("staff.subfolder")}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="h-7 text-xs gap-1 px-2"
-                    onClick={() => setDeleteFolderOpen(true)}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-              )}
+            <div className="p-3 border-b flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium truncate">
+                  {selectedCategory?.name}
+                </span>
+                {selectedFolder && (
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1"
+                      onClick={() => setCreateSubfolderOpen(true)}
+                      disabled={selectedFolder.parentId !== null}
+                    >
+                      <Plus className="w-3 h-3" />
+                      {t("staff.subfolder")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="h-7 text-xs gap-1 px-2"
+                      onClick={() => setDeleteFolderOpen(true)}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <input
+                  className="flex h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                  placeholder={t("common.searchFolder") || "Filter folders..."}
+                  value={folderSearch}
+                  onChange={(e) => setFolderSearch(e.target.value)}
+                />
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto p-2">
               {loadingFolders && folders.length === 0 ? (
                 <div className="flex items-center justify-center h-20">
                   <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                 </div>
-              ) : folders.length === 0 ? (
+              ) : filteredFolders.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
-                  {t("staff.noFolders")}
+                  {folders.length === 0 ? t("staff.noFolders") : "No folders found"}
                 </p>
               ) : (
                 <div className={cn("transition-opacity", loadingFolders && "opacity-60 pointer-events-none")}>
-                  {folders.map((f) => (
+                  {filteredFolders.map((f) => (
                     <FolderNode
                       key={f.id}
                       folder={f}

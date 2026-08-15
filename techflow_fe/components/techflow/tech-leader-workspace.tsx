@@ -1211,17 +1211,17 @@ function FileViewerPane({
                           {file.fileUrl ? (
                             <button
                               onClick={() => {
-                                if (!file.fileUrl || !isLatest) return;
+                                if (!file.fileUrl) return;
                                 const url = API_BASE.replace(/\/$/, "") + file.fileUrl;
                                 window.open(url, "_blank");
                               }}
-                              disabled={!isLatest}
                               className={cn(
                                 "truncate font-semibold text-base transition-colors text-left outline-none",
-                                isLatest ? "hover:underline hover:text-primary cursor-pointer" : "text-muted-foreground cursor-not-allowed opacity-60",
+                                "hover:underline hover:text-primary cursor-pointer",
+                                !isLatest && "text-muted-foreground",
                                 (isNew && file.isStopped) && "text-destructive line-through"
                               )}
-                              title={!isLatest ? "You can only view the latest version of this file." : file.fileName}
+                              title={file.fileName}
                             >
                               {file.fileName}
                             </button>

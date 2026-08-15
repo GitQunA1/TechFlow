@@ -298,10 +298,14 @@ public static class FileEndpoints
                 .Include(d => d.UploadedBy)
                 .Where(d => d.Status == DraftStatus.Pending);
 
-            // Leader chỉ thấy drafts thuộc categories của mình
+            // Leader thấy drafts thuộc TẤT CẢ categories mà mình quản lý
+            // (bao gồm cả LedCategories qua Category.LeaderId VÀ CategoryId trực tiếp trên User)
             if (currentUser.Role == UserRole.TechLeader)
             {
                 var ledCategoryIds = currentUser.LedCategories.Select(c => c.Id).ToList();
+                // Also include the category directly assigned to this leader via User.CategoryId
+                if (currentUser.CategoryId.HasValue && !ledCategoryIds.Contains(currentUser.CategoryId.Value))
+                    ledCategoryIds.Add(currentUser.CategoryId.Value);
                 query = query.Where(d => ledCategoryIds.Contains(d.Folder.CategoryId));
             }
 

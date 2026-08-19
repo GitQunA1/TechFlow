@@ -577,15 +577,16 @@ function CategoryWorkspace({
           let el = null;
           
           if (fileId) {
-            // Priority 1: Revision item
-            el = document.getElementById(`revision-file-${fileId}`);
-            // Priority 2: Standard file item
+            // Priority 1: Draft item
+            el = document.getElementById(`draft-${fileId}`);
+            // Priority 2: Revision item
+            if (!el) el = document.getElementById(`revision-file-${fileId}`);
+            // Priority 3: Standard file item
             if (!el) el = document.getElementById(`file-${fileId}`);
-          } else if (folderId) {
-            // Priority 1: Draft item for this folder
-            el = document.getElementById(`draft-folder-${folderId}`);
-            // Priority 2: The folder itself in sidebar
-            if (!el) el = document.getElementById(`folder-${folderId}`);
+          }
+          if (!el && folderId) {
+            // Fallback: The folder itself in sidebar
+            el = document.getElementById(`folder-${folderId}`);
           }
 
           if (el) {
@@ -1056,7 +1057,7 @@ function FileViewerPane({
             {pendingDrafts.map((draft) => (
               <div
                 key={draft.id}
-                id={`draft-folder-${draft.folderId}`}
+                id={`draft-${draft.id}`}
                 className="group flex flex-col p-4 text-sm rounded-lg border bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-900/50 transition-all hover:shadow-sm"
               >
                 <div className="flex items-start justify-between w-full gap-4">

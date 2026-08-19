@@ -105,9 +105,11 @@ public static class FileEndpoints
                     CreatedAt = DateTime.UtcNow
                 };
                 dbContext.DraftFiles.Add(draft);
+                await dbContext.SaveChangesAsync(cancellationToken);
                 
                 var categoryLeaders = await dbContext.Users
-                    .Where(u => u.CategoryId == folderId && u.Role == UserRole.TechLeader)
+                    .Where(u => u.Role == UserRole.TechLeader && 
+                                (u.CategoryId == folder.CategoryId || u.LedCategories.Any(c => c.Id == folder.CategoryId)))
                     .Select(u => u.Id)
                     .ToListAsync(cancellationToken);
 
@@ -117,6 +119,7 @@ public static class FileEndpoints
                     Title = "New Draft Uploaded",
                     Message = $"{currentUser.Username} uploaded a new draft: {originalFileName}.",
                     TargetFolderId = folderId,
+                    TargetFileId = draft.Id,
                     CreatedAt = DateTime.UtcNow
                 });
                 dbContext.Notifications.AddRange(draftNotifications);
@@ -509,7 +512,8 @@ public static class FileEndpoints
             }
 
             var categoryLeaders = await dbContext.Users
-                .Where(u => u.CategoryId == draft.Folder.CategoryId && u.Role == UserRole.TechLeader)
+                .Where(u => u.Role == UserRole.TechLeader && 
+                            (u.CategoryId == draft.Folder.CategoryId || u.LedCategories.Any(c => c.Id == draft.Folder.CategoryId)))
                 .Select(u => u.Id)
                 .ToListAsync(cancellationToken);
 
@@ -519,6 +523,7 @@ public static class FileEndpoints
                 Title = "Draft Resubmitted",
                 Message = $"{currentUser.Username} resubmitted draft: {originalFileName}.",
                 TargetFolderId = draft.FolderId,
+                TargetFileId = draft.Id,
                 CreatedAt = DateTime.UtcNow
             });
             dbContext.Notifications.AddRange(draftNotifications);
@@ -764,7 +769,8 @@ public static class FileEndpoints
             revisionRequest.SubmittedAt = DateTime.UtcNow;
 
             var categoryLeaders = await dbContext.Users
-                .Where(u => u.CategoryId == revisionRequest.File.Folder.CategoryId && u.Role == UserRole.TechLeader)
+                .Where(u => u.Role == UserRole.TechLeader && 
+                            (u.CategoryId == revisionRequest.File.Folder.CategoryId || u.LedCategories.Any(c => c.Id == revisionRequest.File.Folder.CategoryId)))
                 .Select(u => u.Id)
                 .ToListAsync(cancellationToken);
 

@@ -779,6 +779,7 @@ public static class FileEndpoints
                 UserId = leaderId,
                 Title = "Revision Submitted",
                 Message = $"{currentUser.Username} submitted revision for {revisionRequest.File.FileName}.",
+                TargetFolderId = revisionRequest.File.FolderId,
                 TargetFileId = revisionRequest.FileId,
                 CreatedAt = DateTime.UtcNow
             });
